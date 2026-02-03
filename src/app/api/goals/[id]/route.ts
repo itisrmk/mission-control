@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth-config'
 
 interface Props {
   params: Promise<{
@@ -11,7 +12,7 @@ interface Props {
 // PATCH /api/goals/[id] - Update goal
 export async function PATCH(request: Request, { params }: Props) {
   const { id } = await params
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -21,22 +22,31 @@ export async function PATCH(request: Request, { params }: Props) {
     const body = await request.json()
     
     // Verify ownership through project
-    const goal = await prisma.goal.findFirst({
-      where: { id },
-      include: { project: true },
-    })
+    const { data: goal } = await supabaseAdmin
+      .from('Goal')
+      .select(`
+        *,
+        project:Project(userId)
+      `)
+      .eq('id', id)
+      .single()
     
-    if (!goal || goal.project.userId !== session.user.id) {
+    if (!goal || goal.project?.userId !== session.user.id) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
     }
     
-    const updated = await prisma.goal.update({
-      where: { id },
-      data: {
+    const { data: updated, error } = await supabaseAdmin
+      .from('Goal')
+      .update({
         ...body,
-        deadline: body.deadline ? new Date(body.deadline) : goal.deadline,
-      },
-    })
+        deadline: body.deadline ? new Date(body.deadline).toISOString() : goal.deadline,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
     
     return NextResponse.json(updated)
   } catch (error) {
@@ -48,7 +58,7 @@ export async function PATCH(request: Request, { params }: Props) {
 // DELETE /api/goals/[id]
 export async function DELETE(request: Request, { params }: Props) {
   const { id } = await params
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -56,18 +66,25 @@ export async function DELETE(request: Request, { params }: Props) {
   
   try {
     // Verify ownership
-    const goal = await prisma.goal.findFirst({
-      where: { id },
-      include: { project: true },
-    })
+    const { data: goal } = await supabaseAdmin
+      .from('Goal')
+      .select(`
+        *,
+        project:Project(userId)
+      `)
+      .eq('id', id)
+      .single()
     
-    if (!goal || goal.project.userId !== session.user.id) {
+    if (!goal || goal.project?.userId !== session.user.id) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
     }
     
-    await prisma.goal.delete({
-      where: { id },
-    })
+    const { error } = await supabaseAdmin
+      .from('Goal')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
     
     return NextResponse.json({ success: true })
   } catch (error) {

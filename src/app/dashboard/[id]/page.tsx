@@ -1,7 +1,8 @@
-import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+import { supabaseAdmin } from '@/lib/supabase'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth-config'
 import Dashboard from './dashboard-client'
 
 interface Props {
@@ -12,23 +13,23 @@ interface Props {
 
 export default async function ProjectDashboard({ params }: Props) {
   const { id } = await params
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     redirect('/api/auth/signin')
   }
 
-  const project = await prisma.project.findFirst({
-    where: {
-      id,
-      userId: session.user.id,
-    },
-    include: {
-      goals: true,
-    },
-  })
+  const { data: project, error } = await supabaseAdmin
+    .from('Project')
+    .select(`
+      *,
+      goals:Goal(*)
+    `)
+    .eq('id', id)
+    .eq('userId', session.user.id)
+    .single()
 
-  if (!project) {
+  if (error || !project) {
     notFound()
   }
 
@@ -47,26 +48,29 @@ export default async function ProjectDashboard({ params }: Props) {
   const metrics: Record<string, any> = {}
   
   for (const type of metricTypes) {
-    const metric = await prisma.metric.findFirst({
-      where: {
-        projectId: id,
-        type,
-      },
-      orderBy: { recordedAt: 'desc' },
-    })
+    const { data: metric } = await supabaseAdmin
+      .from('Metric')
+      .select('*')
+      .eq('projectId', id)
+      .eq('type', type)
+      .order('recordedAt', { ascending: false })
+      .limit(1)
+      .single()
+    
     if (metric) {
       metrics[type] = metric
     }
   }
 
   // Get ship streak
-  const streakMetric = await prisma.metric.findFirst({
-    where: {
-      projectId: id,
-      type: 'ACTIVE_USERS',
-    },
-    orderBy: { recordedAt: 'desc' },
-  })
+  const { data: streakMetric } = await supabaseAdmin
+    .from('Metric')
+    .select('*')
+    .eq('projectId', id)
+    .eq('type', 'ACTIVE_USERS')
+    .order('recordedAt', { ascending: false })
+    .limit(1)
+    .single()
 
   return (
     <Dashboard 

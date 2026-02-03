@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+import { supabaseAdmin } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, Users, Code2, Twitter, Eye, Activity } from 'lucide-react'
 
@@ -12,32 +12,47 @@ interface Props {
 export default async function PublicDashboard({ params }: Props) {
   const { username } = await params
   
-  const user = await prisma.user.findUnique({
-    where: { username },
-    include: {
-      projects: {
-        where: { isPublic: true },
-        include: {
-          goals: true,
-        },
-      },
-    },
-  })
+  // Get user by username
+  const { data: user, error: userError } = await supabaseAdmin
+    .from('User')
+    .select('*')
+    .eq('username', username)
+    .single()
   
-  if (!user || user.projects.length === 0) {
+  if (userError || !user) {
     notFound()
   }
   
-  const project = user.projects[0] // Show first public project
+  // Get public projects
+  const { data: projects, error: projectsError } = await supabaseAdmin
+    .from('Project')
+    .select(`
+      *,
+      goals:Goal(*)
+    `)
+    .eq('userId', user.id)
+    .eq('isPublic', true)
   
-  // Get latest metrics
-  const metrics = await prisma.metric.findMany({
-    where: { projectId: project.id },
-    orderBy: { recordedAt: 'desc' },
-    distinct: ['type'],
+  if (projectsError || !projects || projects.length === 0) {
+    notFound()
+  }
+  
+  const project = projects[0] // Show first public project
+  
+  // Get latest metrics for each type
+  const { data: metrics } = await supabaseAdmin
+    .from('Metric')
+    .select('*')
+    .eq('projectId', project.id)
+    .order('recordedAt', { ascending: false })
+  
+  // Get latest for each type
+  const metricMap = new Map()
+  metrics?.forEach((m) => {
+    if (!metricMap.has(m.type)) {
+      metricMap.set(m.type, m)
+    }
   })
-  
-  const metricMap = new Map(metrics.map(m => [m.type, m]))
   
   return (
     <div className="min-h-screen bg-neutral-950 text-white py-12">
@@ -107,11 +122,11 @@ export default async function PublicDashboard({ params }: Props) {
           )}
         </div>
         
-        {project.goals.length > 0 && (
+        {project.goals?.length > 0 && (
           <div className="mt-8">
             <h2 className="text-xl font-semibold mb-4">Goals</h2>
             <div className="space-y-4">
-              {project.goals.map((goal) => (
+              {project.goals.map((goal: any) => (
                 <div key={goal.id} className="bg-neutral-900 rounded-lg p-4">
                   <div className="flex justify-between mb-2">
                     <span>{goal.title}</span>

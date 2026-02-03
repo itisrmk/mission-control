@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth-config'
 
 interface Props {
   params: Promise<{
@@ -11,28 +12,25 @@ interface Props {
 // GET /api/projects/[id] - Get single project
 export async function GET(request: Request, { params }: Props) {
   const { id } = await params
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
   try {
-    const project = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
-      include: {
-        goals: true,
-        metrics: {
-          orderBy: { recordedAt: 'desc' },
-          take: 100,
-        },
-      },
-    })
+    const { data: project, error } = await supabaseAdmin
+      .from('Project')
+      .select(`
+        *,
+        goals:Goal(*),
+        metrics:Metric(*)
+      `)
+      .eq('id', id)
+      .eq('userId', session.user.id)
+      .single()
     
-    if (!project) {
+    if (error || !project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
@@ -46,7 +44,7 @@ export async function GET(request: Request, { params }: Props) {
 // PATCH /api/projects/[id] - Update project
 export async function PATCH(request: Request, { params }: Props) {
   const { id } = await params
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -56,21 +54,28 @@ export async function PATCH(request: Request, { params }: Props) {
     const body = await request.json()
     
     // Verify ownership
-    const existing = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
-    })
+    const { data: existing } = await supabaseAdmin
+      .from('Project')
+      .select('id')
+      .eq('id', id)
+      .eq('userId', session.user.id)
+      .single()
     
     if (!existing) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
-    const project = await prisma.project.update({
-      where: { id },
-      data: body,
-    })
+    const { data: project, error } = await supabaseAdmin
+      .from('Project')
+      .update({
+        ...body,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
     
     return NextResponse.json(project)
   } catch (error) {
@@ -82,7 +87,7 @@ export async function PATCH(request: Request, { params }: Props) {
 // DELETE /api/projects/[id] - Delete project
 export async function DELETE(request: Request, { params }: Props) {
   const { id } = await params
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -90,20 +95,23 @@ export async function DELETE(request: Request, { params }: Props) {
   
   try {
     // Verify ownership
-    const existing = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
-    })
+    const { data: existing } = await supabaseAdmin
+      .from('Project')
+      .select('id')
+      .eq('id', id)
+      .eq('userId', session.user.id)
+      .single()
     
     if (!existing) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
-    await prisma.project.delete({
-      where: { id },
-    })
+    const { error } = await supabaseAdmin
+      .from('Project')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
     
     return NextResponse.json({ success: true })
   } catch (error) {

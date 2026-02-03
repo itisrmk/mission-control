@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { supabaseAdmin } from '@/lib/supabase'
 
 interface PlausibleSite {
   domain: string
@@ -36,16 +36,14 @@ export async function fetchPlausibleMetrics(
     const data = await response.json()
     
     // Save page views metric
-    await prisma.metric.create({
-      data: {
-        projectId,
-        type: 'PAGE_VIEWS',
-        value: data.results?.pageviews?.value || 0,
-        metadata: {
-          siteId,
-          period: '7d',
-          visitors: data.results?.visitors?.value || 0,
-        },
+    await supabaseAdmin.from('Metric').insert({
+      projectId,
+      type: 'PAGE_VIEWS',
+      value: data.results?.pageviews?.value || 0,
+      metadata: {
+        siteId,
+        period: '7d',
+        visitors: data.results?.visitors?.value || 0,
       },
     })
     
@@ -78,11 +76,15 @@ export async function fetchPlausibleMetrics(
 
 // Fetch metrics for all projects with Plausible integration
 export async function syncAllPlausibleMetrics() {
-  const projects = await prisma.project.findMany({
-    where: {
-      plausibleSiteId: { not: null },
-    },
-  })
+  const { data: projects, error } = await supabaseAdmin
+    .from('Project')
+    .select('*')
+    .not('plausibleSiteId', 'is', null)
+  
+  if (error) {
+    console.error('Error fetching projects:', error)
+    return
+  }
   
   const apiKey = process.env.PLAUSIBLE_API_KEY
   
@@ -91,7 +93,7 @@ export async function syncAllPlausibleMetrics() {
     return
   }
   
-  for (const project of projects) {
+  for (const project of projects || []) {
     if (project.plausibleSiteId) {
       try {
         await fetchPlausibleMetrics(

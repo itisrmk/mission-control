@@ -1,7 +1,7 @@
 import { syncAllGitHubMetrics } from './github'
 import { syncAllTwitterMetrics } from './twitter'
 import { syncAllPlausibleMetrics } from './plausible'
-import { prisma } from '../prisma'
+import { supabaseAdmin } from '../supabase'
 
 // Main sync function - call this periodically (e.g., every hour)
 export async function syncAllMetrics() {
@@ -28,53 +28,62 @@ export async function syncAllMetrics() {
 
 // Update calculated metrics that depend on historical data
 async function updateCalculatedMetrics() {
-  const projects = await prisma.project.findMany()
+  const { data: projects, error } = await supabaseAdmin.from('Project').select('id')
   
-  for (const project of projects) {
+  if (error) {
+    console.error('Error fetching projects:', error)
+    return
+  }
+  
+  for (const project of projects || []) {
     // Calculate MRR growth rate
-    const mrrMetrics = await prisma.metric.findMany({
-      where: {
-        projectId: project.id,
-        type: 'MRR',
-      },
-      orderBy: { recordedAt: 'desc' },
-      take: 2,
-    })
+    const { data: mrrMetrics } = await supabaseAdmin
+      .from('Metric')
+      .select('*')
+      .eq('projectId', project.id)
+      .eq('type', 'MRR')
+      .order('recordedAt', { ascending: false })
+      .limit(2)
     
-    if (mrrMetrics.length === 2) {
+    if (mrrMetrics && mrrMetrics.length === 2) {
       const current = mrrMetrics[0].value
       const previous = mrrMetrics[1].value
       const growthRate = ((current - previous) / previous) * 100
       
       // Store growth rate as metadata on the latest metric
-      await prisma.metric.update({
-        where: { id: mrrMetrics[0].id },
-        data: {
+      await supabaseAdmin
+        .from('Metric')
+        .update({
           metadata: {
-            ...mrrMetrics[0].metadata as object,
+            ...(mrrMetrics[0].metadata as object || {}),
             growthRate: growthRate.toFixed(2),
             previousValue: previous,
           },
-        },
-      })
+        })
+        .eq('id', mrrMetrics[0].id)
     }
   }
 }
 
 // Update ship streak for all projects
 export async function updateShipStreaks() {
-  const projects = await prisma.project.findMany({
-    include: {
-      metrics: {
-        where: { type: 'GITHUB_COMMITS' },
-        orderBy: { recordedAt: 'desc' },
-        take: 30,
-      },
-    },
-  })
+  const { data: projects, error } = await supabaseAdmin
+    .from('Project')
+    .select(`
+      *,
+      metrics:Metric(*)
+    `)
+    .eq('metrics.type', 'GITHUB_COMMITS')
+    .order('metrics.recordedAt', { ascending: false })
+    .limit(30)
   
-  for (const project of projects) {
-    const recentCommits = project.metrics
+  if (error) {
+    console.error('Error fetching projects:', error)
+    return
+  }
+  
+  for (const project of projects || []) {
+    const recentCommits = project.metrics || []
     
     // Calculate streak: consecutive days with commits
     let streak = 0
@@ -85,7 +94,7 @@ export async function updateShipStreaks() {
       const checkDate = new Date(today)
       checkDate.setDate(checkDate.getDate() - i)
       
-      const hasCommit = recentCommits.some(m => {
+      const hasCommit = recentCommits.some((m: any) => {
         const metricDate = new Date(m.recordedAt)
         metricDate.setHours(0, 0, 0, 0)
         return metricDate.getTime() === checkDate.getTime() && m.value > 0
@@ -100,13 +109,11 @@ export async function updateShipStreaks() {
     }
     
     // Store streak as a metric
-    await prisma.metric.create({
-      data: {
-        projectId: project.id,
-        type: 'ACTIVE_USERS', // Using as streak storage for now
-        value: streak,
-        metadata: { metricType: 'shipStreak' },
-      },
+    await supabaseAdmin.from('Metric').insert({
+      projectId: project.id,
+      type: 'ACTIVE_USERS', // Using as streak storage for now
+      value: streak,
+      metadata: { metricType: 'shipStreak' },
     })
     
     console.log(`${project.name}: ${streak} day streak`)

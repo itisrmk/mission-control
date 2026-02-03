@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { supabaseAdmin } from '@/lib/supabase'
 
 interface TwitterMetrics {
   followers: number
@@ -33,29 +33,25 @@ export async function fetchTwitterMetrics(projectId: string, handle: string, bea
     }
     
     // Save followers metric
-    await prisma.metric.create({
-      data: {
-        projectId,
-        type: 'TWITTER_FOLLOWERS',
-        value: metrics.followers_count || 0,
-        metadata: {
-          handle,
-          following_count: metrics.following_count,
-          tweet_count: metrics.tweet_count,
-        },
+    await supabaseAdmin.from('Metric').insert({
+      projectId,
+      type: 'TWITTER_FOLLOWERS',
+      value: metrics.followers_count || 0,
+      metadata: {
+        handle,
+        following_count: metrics.following_count,
+        tweet_count: metrics.tweet_count,
       },
     })
     
     // Save tweet count as engagement metric
-    await prisma.metric.create({
-      data: {
-        projectId,
-        type: 'TWITTER_IMPRESSIONS',
-        value: metrics.tweet_count || 0,
-        metadata: {
-          handle,
-          listed_count: metrics.listed_count,
-        },
+    await supabaseAdmin.from('Metric').insert({
+      projectId,
+      type: 'TWITTER_IMPRESSIONS',
+      value: metrics.tweet_count || 0,
+      metadata: {
+        handle,
+        listed_count: metrics.listed_count,
       },
     })
     
@@ -72,11 +68,15 @@ export async function fetchTwitterMetrics(projectId: string, handle: string, bea
 
 // Fetch metrics for all projects with Twitter integration
 export async function syncAllTwitterMetrics() {
-  const projects = await prisma.project.findMany({
-    where: {
-      twitterHandle: { not: null },
-    },
-  })
+  const { data: projects, error } = await supabaseAdmin
+    .from('Project')
+    .select('*')
+    .not('twitterHandle', 'is', null)
+  
+  if (error) {
+    console.error('Error fetching projects:', error)
+    return
+  }
   
   const bearerToken = process.env.TWITTER_BEARER_TOKEN
   
@@ -85,7 +85,7 @@ export async function syncAllTwitterMetrics() {
     return
   }
   
-  for (const project of projects) {
+  for (const project of projects || []) {
     if (project.twitterHandle) {
       try {
         await fetchTwitterMetrics(
