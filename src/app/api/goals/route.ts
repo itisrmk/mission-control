@@ -80,15 +80,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
+    const now = new Date().toISOString()
     const { data: goal, error } = await supabaseAdmin
       .from('Goal')
       .insert({
+        id: crypto.randomUUID(),
         projectId,
         title,
         description,
         target,
         unit,
         deadline: deadline ? new Date(deadline).toISOString() : null,
+        createdAt: now,
+        updatedAt: now,
       } as any)
       .select()
       .single()

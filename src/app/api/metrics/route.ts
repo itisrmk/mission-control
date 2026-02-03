@@ -60,13 +60,16 @@ export async function POST(request: Request) {
       )
     }
     
+    const now = new Date().toISOString()
     const { data: metric, error } = await supabaseAdmin
       .from('Metric')
       .insert({
+        id: crypto.randomUUID(),
         projectId,
         type,
         value,
         metadata: metadata || {},
+        recordedAt: now,
       } as any)
       .select()
       .single()

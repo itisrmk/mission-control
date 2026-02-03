@@ -64,14 +64,18 @@ export async function POST(request: Request) {
       )
     }
     
+    const now = new Date().toISOString()
     const { data: project, error } = await supabaseAdmin
       .from('Project')
       .insert({
+        id: crypto.randomUUID(),
         name,
         slug,
         description,
         domain,
         userId: session.user.id,
+        createdAt: now,
+        updatedAt: now,
       } as any)
       .select()
       .single()
