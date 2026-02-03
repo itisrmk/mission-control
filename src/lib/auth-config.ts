@@ -15,7 +15,6 @@ declare module 'next-auth' {
 }
 
 export const authOptions: NextAuthOptions = {
-  trustHost: true,
   providers: [
     CredentialsProvider({
       name: 'credentials',
