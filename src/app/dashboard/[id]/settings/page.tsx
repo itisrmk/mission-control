@@ -30,6 +30,7 @@ interface Project {
   slug: string
   isPublic: boolean
   stripeAccountId: string | null
+  stripeWebhookSecret: string | null
   githubRepo: string | null
   githubAccessToken: string | null
   twitterHandle: string | null
@@ -69,6 +70,7 @@ export default function ProjectSettings({ params }: Props) {
           twitterAccessToken: data.twitterAccessToken || '',
           plausibleSiteId: data.plausibleSiteId || '',
           plausibleApiKey: data.plausibleApiKey || '',
+          stripeWebhookSecret: data.stripeWebhookSecret || '',
           isPublic: data.isPublic,
         })
       }
@@ -255,6 +257,28 @@ export default function ProjectSettings({ params }: Props) {
             </CardContent>
           </Card>
 
+          {/* GitHub Instructions */}
+          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50 -mt-4 mb-6">
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-sm text-neutral-400 hover:text-white transition-colors">
+              <div className="flex items-center space-x-2">
+                <HelpCircle className="h-4 w-4" />
+                <span>How to connect GitHub?</span>
+              </div>
+              <ChevronDown className="h-4 w-4" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-3 text-sm text-neutral-400 space-y-2">
+              <ol className="list-decimal list-inside space-y-1 ml-1">
+                <li>Go to <a href="https://github.com/settings/tokens" target="_blank" rel="noopener" className="text-blue-400 hover:underline">GitHub Settings → Developer settings → Personal access tokens</a></li>
+                <li>Click "Generate new token (classic)"</li>
+                <li>Give it a name like "Mission Control"</li>
+                <li>Select scopes: <code className="bg-neutral-900 px-1 rounded">repo</code> (for private repos) or <code className="bg-neutral-900 px-1 rounded">public_repo</code> (for public only)</li>
+                <li>Click "Generate token" and copy it</li>
+                <li>Enter your repo as <code className="bg-neutral-900 px-1 rounded">owner/repo</code> (e.g., <code className="bg-neutral-900 px-1 rounded">rahulkashyap/mission-control</code>)</li>
+                <li>Paste the token above and click Save</li>
+              </ol>
+            </CollapsibleContent>
+          </Collapsible>
+
           {/* Twitter/X Integration */}
           <Card className="bg-neutral-900 border-neutral-800">
             <CardHeader>
@@ -314,6 +338,29 @@ export default function ProjectSettings({ params }: Props) {
             </CardContent>
           </Card>
 
+          {/* Twitter Instructions */}
+          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50 -mt-4 mb-6">
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-sm text-neutral-400 hover:text-white transition-colors">
+              <div className="flex items-center space-x-2">
+                <HelpCircle className="h-4 w-4" />
+                <span>How to connect Twitter?</span>
+              </div>
+              <ChevronDown className="h-4 w-4" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-3 text-sm text-neutral-400 space-y-2">
+              <ol className="list-decimal list-inside space-y-1 ml-1">
+                <li>Go to <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank" rel="noopener" className="text-blue-400 hover:underline">Twitter Developer Portal</a></li>
+                <li>Sign up for a free developer account (if you haven't)</li>
+                <li>Create a new Project, then create an App</li>
+                <li>Go to your App → "Keys and Tokens" tab</li>
+                <li>Copy the "Bearer Token" (starts with AAAA...)</li>
+                <li>Enter your username (with or without @)</li>
+                <li>Paste the Bearer Token above and click Save</li>
+              </ol>
+              <p className="text-xs text-neutral-500 mt-2">Note: Free tier has rate limits. For high-traffic accounts, consider Elevated access.</p>
+            </CollapsibleContent>
+          </Collapsible>
+
           {/* Plausible Integration */}
           <Card className="bg-neutral-900 border-neutral-800">
             <CardHeader>
@@ -367,59 +414,14 @@ export default function ProjectSettings({ params }: Props) {
                     </>
                   ) : (
                     'Test Sync'
-                  )}
+                  )
                 </Button>
               )}
             </CardContent>
           </Card>
 
-          {/* GitHub Instructions */}
-          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50">
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-sm text-neutral-400 hover:text-white transition-colors">
-              <div className="flex items-center space-x-2">
-                <HelpCircle className="h-4 w-4" />
-                <span>How to connect GitHub?</span>
-              </div>
-              <ChevronDown className="h-4 w-4" />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="px-3 pb-3 text-sm text-neutral-400 space-y-2">
-              <ol className="list-decimal list-inside space-y-1 ml-1">
-                <li>Go to <a href="https://github.com/settings/tokens" target="_blank" rel="noopener" className="text-blue-400 hover:underline">GitHub Settings → Developer settings → Personal access tokens</a></li>
-                <li>Click "Generate new token (classic)"</li>
-                <li>Give it a name like "Mission Control"</li>
-                <li>Select scopes: <code className="bg-neutral-900 px-1 rounded">repo</code> (for private repos) or <code className="bg-neutral-900 px-1 rounded">public_repo</code> (for public only)</li>
-                <li>Click "Generate token" and copy it</li>
-                <li>Enter your repo as <code className="bg-neutral-900 px-1 rounded">owner/repo</code> (e.g., <code className="bg-neutral-900 px-1 rounded">rahulkashyap/mission-control</code>)</li>
-                <li>Paste the token and click Save</li>
-              </ol>
-            </CollapsibleContent>
-          </Collapsible>
-
-          {/* Twitter Instructions */}
-          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50">
-            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-sm text-neutral-400 hover:text-white transition-colors">
-              <div className="flex items-center space-x-2">
-                <HelpCircle className="h-4 w-4" />
-                <span>How to connect Twitter?</span>
-              </div>
-              <ChevronDown className="h-4 w-4" />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="px-3 pb-3 text-sm text-neutral-400 space-y-2">
-              <ol className="list-decimal list-inside space-y-1 ml-1">
-                <li>Go to <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank" rel="noopener" className="text-blue-400 hover:underline">Twitter Developer Portal</a></li>
-                <li>Sign up for a free developer account (if you haven't)</li>
-                <li>Create a new Project, then create an App</li>
-                <li>Go to your App → "Keys and Tokens" tab</li>
-                <li>Copy the "Bearer Token" (starts with AAAA...)</li>
-                <li>Enter your username (with or without @)</li>
-                <li>Paste the Bearer Token and click Save</li>
-              </ol>
-              <p className="text-xs text-neutral-500 mt-2">Note: Free tier has rate limits. For high-traffic accounts, consider Elevated access.</p>
-            </CollapsibleContent>
-          </Collapsible>
-
           {/* Plausible Instructions */}
-          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50 -mt-4 mb-6">
             <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-sm text-neutral-400 hover:text-white transition-colors">
               <div className="flex items-center space-x-2">
                 <HelpCircle className="h-4 w-4" />
@@ -435,13 +437,46 @@ export default function ProjectSettings({ params }: Props) {
                 <li>Click "Generate API Key"</li>
                 <li>Copy the API key</li>
                 <li>Enter your Site ID (your domain, e.g., <code className="bg-neutral-900 px-1 rounded">example.com</code>)</li>
-                <li>Paste the API Key and click Save</li>
+                <li>Paste the API Key above and click Save</li>
               </ol>
             </CollapsibleContent>
           </Collapsible>
 
+          {/* Stripe Integration */}
+          <Card className="bg-neutral-900 border-neutral-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <CreditCard className="h-5 w-5" />
+                  <CardTitle>Stripe</CardTitle>
+                </div>
+                {project.stripeWebhookSecret && (
+                  <Badge className="bg-green-500/10 text-green-500">Connected</Badge>
+                )}
+              </div>
+              <CardDescription className="text-neutral-400">
+                Revenue tracking via webhooks
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Webhook Signing Secret</Label>
+                <Input
+                  type="password"
+                  value={formData.stripeWebhookSecret || ''}
+                  onChange={(e) => setFormData({ ...formData, stripeWebhookSecret: e.target.value })}
+                  placeholder="whsec_xxxxxxxxxxxx"
+                  className="bg-neutral-800 border-neutral-700"
+                />
+                <p className="text-xs text-neutral-500">
+                  From Stripe Dashboard → Developers → Webhooks → Signing secret
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Stripe Instructions */}
-          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50 -mt-4 mb-6">
             <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-sm text-neutral-400 hover:text-white transition-colors">
               <div className="flex items-center space-x-2">
                 <HelpCircle className="h-4 w-4" />
@@ -470,9 +505,8 @@ export default function ProjectSettings({ params }: Props) {
                 </li>
                 <li>Click "Add endpoint"</li>
                 <li>Copy the "Signing secret" (starts with whsec_)</li>
-                <li>Contact the site admin to add the webhook secret to the server</li>
+                <li>Paste the signing secret above and click Save</li>
               </ol>
-              <p className="text-xs text-yellow-500 mt-2">⚠️ Note: Stripe requires server-side webhook configuration. The site owner needs to add your webhook secret to the environment variables.</p>
             </CollapsibleContent>
           </Collapsible>
 

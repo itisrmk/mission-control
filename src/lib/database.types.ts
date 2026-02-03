@@ -188,6 +188,7 @@ export type Database = {
           plausibleSiteId: string | null
           slug: string
           stripeAccountId: string | null
+          stripeWebhookSecret: string | null
           twitterAccessToken: string | null
           twitterHandle: string | null
           updatedAt: string
@@ -206,6 +207,7 @@ export type Database = {
           plausibleSiteId?: string | null
           slug: string
           stripeAccountId?: string | null
+          stripeWebhookSecret?: string | null
           twitterAccessToken?: string | null
           twitterHandle?: string | null
           updatedAt: string
@@ -224,6 +226,7 @@ export type Database = {
           plausibleSiteId?: string | null
           slug?: string
           stripeAccountId?: string | null
+          stripeWebhookSecret?: string | null
           twitterAccessToken?: string | null
           twitterHandle?: string | null
           updatedAt?: string
