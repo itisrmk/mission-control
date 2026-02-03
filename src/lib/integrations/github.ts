@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { supabaseAdmin } from '@/lib/supabase'
 
 interface GitHubRepo {
   owner: string
@@ -51,26 +51,22 @@ export async function fetchGitHubMetrics(projectId: string, accessToken: string,
     const prCount = Array.isArray(prs) ? prs.length : 0
     
     // Save metrics
-    await prisma.metric.create({
-      data: {
-        projectId,
-        type: 'GITHUB_COMMITS',
-        value: commitCount,
-        metadata: {
-          period: '30d',
-          repo: repoFullName,
-        },
+    await supabaseAdmin.from('Metric').insert({
+      projectId,
+      type: 'GITHUB_COMMITS',
+      value: commitCount,
+      metadata: {
+        period: '30d',
+        repo: repoFullName,
       },
     })
     
-    await prisma.metric.create({
-      data: {
-        projectId,
-        type: 'GITHUB_PRS',
-        value: prCount,
-        metadata: {
-          repo: repoFullName,
-        },
+    await supabaseAdmin.from('Metric').insert({
+      projectId,
+      type: 'GITHUB_PRS',
+      value: prCount,
+      metadata: {
+        repo: repoFullName,
       },
     })
     
@@ -83,14 +79,18 @@ export async function fetchGitHubMetrics(projectId: string, accessToken: string,
 
 // Fetch metrics for all projects with GitHub integration
 export async function syncAllGitHubMetrics() {
-  const projects = await prisma.project.findMany({
-    where: {
-      githubRepo: { not: null },
-      githubAccessToken: { not: null },
-    },
-  })
+  const { data: projects, error } = await supabaseAdmin
+    .from('Project')
+    .select('*')
+    .not('githubRepo', 'is', null)
+    .not('githubAccessToken', 'is', null)
   
-  for (const project of projects) {
+  if (error) {
+    console.error('Error fetching projects:', error)
+    return
+  }
+  
+  for (const project of projects || []) {
     if (project.githubRepo && project.githubAccessToken) {
       try {
         await fetchGitHubMetrics(

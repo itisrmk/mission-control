@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { supabaseAdmin } from '@/lib/supabase'
 
 // GET /api/metrics?projectId=xxx
 export async function GET(request: Request) {
@@ -11,34 +11,35 @@ export async function GET(request: Request) {
   }
   
   try {
-    // Get latest metrics for each type
-    const metrics = await prisma.metric.groupBy({
-      by: ['type'],
-      where: { projectId },
-      _max: { recordedAt: true },
-    })
+    // Get all metrics for project
+    const { data: allMetrics, error: metricsError } = await supabaseAdmin
+      .from('Metric')
+      .select('*')
+      .eq('projectId', projectId)
     
-    const latestMetrics = await Promise.all(
-      metrics.map(async (m) => {
-        return prisma.metric.findFirst({
-          where: {
-            projectId,
-            type: m.type,
-            recordedAt: m._max.recordedAt,
-          },
-        })
-      })
-    )
+    if (metricsError) throw metricsError
+    
+    // Get latest metric for each type
+    const latestByType = new Map()
+    allMetrics?.forEach((metric) => {
+      const existing = latestByType.get(metric.type)
+      if (!existing || new Date(metric.recordedAt) > new Date(existing.recordedAt)) {
+        latestByType.set(metric.type, metric)
+      }
+    })
     
     // Get goals
-    const goals = await prisma.goal.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' },
-    })
+    const { data: goals, error: goalsError } = await supabaseAdmin
+      .from('Goal')
+      .select('*')
+      .eq('projectId', projectId)
+      .order('createdAt', { ascending: false })
+    
+    if (goalsError) throw goalsError
     
     return NextResponse.json({
-      metrics: latestMetrics.filter(Boolean),
-      goals,
+      metrics: Array.from(latestByType.values()),
+      goals: goals || [],
     })
   } catch (error) {
     console.error('Error fetching metrics:', error)
@@ -59,14 +60,18 @@ export async function POST(request: Request) {
       )
     }
     
-    const metric = await prisma.metric.create({
-      data: {
+    const { data: metric, error } = await supabaseAdmin
+      .from('Metric')
+      .insert({
         projectId,
         type,
         value,
         metadata: metadata || {},
-      },
-    })
+      })
+      .select()
+      .single()
+    
+    if (error) throw error
     
     return NextResponse.json(metric)
   } catch (error) {

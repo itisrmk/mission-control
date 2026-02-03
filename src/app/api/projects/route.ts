@@ -1,28 +1,30 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth-config'
 
 // GET /api/projects - List user's projects
 export async function GET() {
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
   try {
-    const projects = await prisma.project.findMany({
-      where: { userId: session.user.id },
-      include: {
-        goals: true,
-        _count: {
-          select: { metrics: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+    const { data: projects, error } = await supabaseAdmin
+      .from('Project')
+      .select(`
+        *,
+        goals:Goal(*),
+        metrics:Metric(count)
+      `)
+      .eq('userId', session.user.id)
+      .order('createdAt', { ascending: false })
     
-    return NextResponse.json(projects)
+    if (error) throw error
+    
+    return NextResponse.json(projects || [])
   } catch (error) {
     console.error('Error fetching projects:', error)
     return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 })
@@ -31,7 +33,7 @@ export async function GET() {
 
 // POST /api/projects - Create new project
 export async function POST(request: Request) {
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -49,9 +51,11 @@ export async function POST(request: Request) {
     }
     
     // Check if slug is unique
-    const existing = await prisma.project.findUnique({
-      where: { slug },
-    })
+    const { data: existing } = await supabaseAdmin
+      .from('Project')
+      .select('id')
+      .eq('slug', slug)
+      .single()
     
     if (existing) {
       return NextResponse.json(
@@ -60,15 +64,19 @@ export async function POST(request: Request) {
       )
     }
     
-    const project = await prisma.project.create({
-      data: {
+    const { data: project, error } = await supabaseAdmin
+      .from('Project')
+      .insert({
         name,
         slug,
         description,
         domain,
         userId: session.user.id,
-      },
-    })
+      })
+      .select()
+      .single()
+    
+    if (error) throw error
     
     return NextResponse.json(project, { status: 201 })
   } catch (error) {

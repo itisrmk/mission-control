@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth-config'
 import { fetchGitHubMetrics } from '@/lib/integrations/github'
 import { fetchTwitterMetrics } from '@/lib/integrations/twitter'
 import { fetchPlausibleMetrics } from '@/lib/integrations/plausible'
-import { syncAllMetrics } from '@/lib/integrations/sync'
 
 // POST /api/sync - Trigger manual sync for a project
 export async function POST(request: Request) {
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -26,14 +26,14 @@ export async function POST(request: Request) {
     }
     
     // Verify ownership
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId: session.user.id,
-      },
-    })
+    const { data: project, error: projectError } = await supabaseAdmin
+      .from('Project')
+      .select('*')
+      .eq('id', projectId)
+      .eq('userId', session.user.id)
+      .single()
     
-    if (!project) {
+    if (projectError || !project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
 
 // GET /api/sync - Get sync status
 export async function GET(request: Request) {
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -126,20 +126,30 @@ export async function GET(request: Request) {
   }
   
   try {
-    // Get last sync time for each integration
-    const latestMetrics = await prisma.metric.findMany({
-      where: { projectId },
-      orderBy: { recordedAt: 'desc' },
-      distinct: ['type'],
+    // Get all metrics for project
+    const { data: metrics, error } = await supabaseAdmin
+      .from('Metric')
+      .select('*')
+      .eq('projectId', projectId)
+      .order('recordedAt', { ascending: false })
+    
+    if (error) throw error
+    
+    // Get latest for each type
+    const latestByType = new Map()
+    metrics?.forEach((metric) => {
+      if (!latestByType.has(metric.type)) {
+        latestByType.set(metric.type, metric)
+      }
     })
     
-    const syncStatus = latestMetrics.reduce((acc, metric) => {
-      acc[metric.type] = {
+    const syncStatus: Record<string, any> = {}
+    latestByType.forEach((metric, type) => {
+      syncStatus[type] = {
         lastSync: metric.recordedAt,
         value: metric.value,
       }
-      return acc
-    }, {} as Record<string, any>)
+    })
     
     return NextResponse.json(syncStatus)
   } catch (error) {

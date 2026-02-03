@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
+import { supabaseAdmin } from '@/lib/supabase'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth-config'
 
 // GET /api/goals?projectId=xxx
 export async function GET(request: Request) {
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -22,23 +23,26 @@ export async function GET(request: Request) {
   
   try {
     // Verify ownership
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId: session.user.id,
-      },
-    })
+    const { data: project, error: projectError } = await supabaseAdmin
+      .from('Project')
+      .select('id')
+      .eq('id', projectId)
+      .eq('userId', session.user.id)
+      .single()
     
-    if (!project) {
+    if (projectError || !project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
-    const goals = await prisma.goal.findMany({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' },
-    })
+    const { data: goals, error } = await supabaseAdmin
+      .from('Goal')
+      .select('*')
+      .eq('projectId', projectId)
+      .order('createdAt', { ascending: false })
     
-    return NextResponse.json(goals)
+    if (error) throw error
+    
+    return NextResponse.json(goals || [])
   } catch (error) {
     console.error('Error fetching goals:', error)
     return NextResponse.json({ error: 'Failed to fetch goals' }, { status: 500 })
@@ -47,7 +51,7 @@ export async function GET(request: Request) {
 
 // POST /api/goals
 export async function POST(request: Request) {
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -65,27 +69,31 @@ export async function POST(request: Request) {
     }
     
     // Verify ownership
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId: session.user.id,
-      },
-    })
+    const { data: project, error: projectError } = await supabaseAdmin
+      .from('Project')
+      .select('id')
+      .eq('id', projectId)
+      .eq('userId', session.user.id)
+      .single()
     
-    if (!project) {
+    if (projectError || !project) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
     
-    const goal = await prisma.goal.create({
-      data: {
+    const { data: goal, error } = await supabaseAdmin
+      .from('Goal')
+      .insert({
         projectId,
         title,
         description,
         target,
         unit,
-        deadline: deadline ? new Date(deadline) : null,
-      },
-    })
+        deadline: deadline ? new Date(deadline).toISOString() : null,
+      })
+      .select()
+      .single()
+    
+    if (error) throw error
     
     return NextResponse.json(goal, { status: 201 })
   } catch (error) {

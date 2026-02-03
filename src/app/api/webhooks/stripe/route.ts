@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { supabaseAdmin } from '@/lib/supabase'
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -49,30 +49,32 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   const amount = invoice.amount_paid / 100 // Convert from cents
   
   // Find project by Stripe customer ID
-  const project = await prisma.project.findFirst({
-    where: { stripeAccountId: invoice.customer as string },
-  })
+  const { data: project } = await supabaseAdmin
+    .from('Project')
+    .select('id')
+    .eq('stripeAccountId', invoice.customer as string)
+    .single()
   
   if (!project) return
   
   // Record the revenue metric
-  await prisma.metric.create({
-    data: {
-      projectId: project.id,
-      type: 'MRR',
-      value: amount,
-      metadata: {
-        invoiceId: invoice.id,
-        subscriptionId: invoice.subscription,
-      },
+  await supabaseAdmin.from('Metric').insert({
+    projectId: project.id,
+    type: 'MRR',
+    value: amount,
+    metadata: {
+      invoiceId: invoice.id,
+      subscriptionId: invoice.subscription,
     },
   })
 }
 
 async function handleSubscriptionChange(subscription: Stripe.Subscription) {
-  const project = await prisma.project.findFirst({
-    where: { stripeAccountId: subscription.customer as string },
-  })
+  const { data: project } = await supabaseAdmin
+    .from('Project')
+    .select('id')
+    .eq('stripeAccountId', subscription.customer as string)
+    .single()
   
   if (!project) return
   
@@ -81,36 +83,34 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     return acc + (item.plan.amount || 0) * (item.quantity || 1)
   }, 0) / 100
   
-  await prisma.metric.create({
-    data: {
-      projectId: project.id,
-      type: 'MRR',
-      value: mrr,
-      metadata: {
-        subscriptionId: subscription.id,
-        status: subscription.status,
-      },
+  await supabaseAdmin.from('Metric').insert({
+    projectId: project.id,
+    type: 'MRR',
+    value: mrr,
+    metadata: {
+      subscriptionId: subscription.id,
+      status: subscription.status,
     },
   })
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const project = await prisma.project.findFirst({
-    where: { stripeAccountId: subscription.customer as string },
-  })
+  const { data: project } = await supabaseAdmin
+    .from('Project')
+    .select('id')
+    .eq('stripeAccountId', subscription.customer as string)
+    .single()
   
   if (!project) return
   
   // Record churn
-  await prisma.metric.create({
-    data: {
-      projectId: project.id,
-      type: 'CHURN_RATE',
-      value: 1,
-      metadata: {
-        subscriptionId: subscription.id,
-        event: 'subscription.deleted',
-      },
+  await supabaseAdmin.from('Metric').insert({
+    projectId: project.id,
+    type: 'CHURN_RATE',
+    value: 1,
+    metadata: {
+      subscriptionId: subscription.id,
+      event: 'subscription.deleted',
     },
   })
 }

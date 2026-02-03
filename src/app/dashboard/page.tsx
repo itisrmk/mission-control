@@ -1,28 +1,34 @@
-import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { prisma } from '@/lib/prisma'
+import { supabaseAdmin } from '@/lib/supabase'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth-config'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, ExternalLink, Settings } from 'lucide-react'
 import NewProjectButton from './new-project-button'
 
 export default async function DashboardPage() {
-  const session = await auth()
+  const session = await getServerSession(authOptions)
   
   if (!session?.user?.id) {
     redirect('/api/auth/signin')
   }
 
-  const projects = await prisma.project.findMany({
-    where: { userId: session.user.id },
-    include: {
-      _count: {
-        select: { metrics: true, goals: true },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+  const { data: projects, error } = await supabaseAdmin
+    .from('Project')
+    .select(`
+      *,
+      metrics:Metric(count),
+      goals:Goal(count)
+    `)
+    .eq('userId', session.user.id)
+    .order('createdAt', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching projects:', error)
+    return <div>Error loading projects</div>
+  }
 
   return (
     <div className="p-8">
@@ -56,7 +62,7 @@ export default async function DashboardPage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
+            {projects.map((project: any) => (
               <Card key={project.id} className="bg-neutral-900 border-neutral-800">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -75,8 +81,8 @@ export default async function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center space-x-4 text-sm text-neutral-400 mb-4">
-                    <span>{project._count.metrics} metrics</span>
-                    <span>{project._count.goals} goals</span>
+                    <span>{project.metrics?.[0]?.count || 0} metrics</span>
+                    <span>{project.goals?.[0]?.count || 0} goals</span>
                   </div>
                   
                   <div className="flex space-x-2">
