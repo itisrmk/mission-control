@@ -52,7 +52,7 @@ export default async function ProjectDashboard({ params }: Props) {
       .from('Metric')
       .select('*')
       .eq('projectId', id)
-      .eq('type', type)
+      .eq('type', type as any)
       .order('recordedAt', { ascending: false })
       .limit(1)
       .single()
