@@ -79,9 +79,22 @@ export default function Dashboard({ project, metrics, goals: initialGoals, strea
         body: JSON.stringify({ projectId: project.id }),
       })
       
+      const data = await res.json()
+      
       if (!res.ok) {
-        const data = await res.json()
         throw new Error(data.error || 'Sync failed')
+      }
+      
+      // Check for integration errors
+      const errors: string[] = []
+      if (data.results?.github?.error) errors.push(`GitHub: ${data.results.github.error}`)
+      if (data.results?.twitter?.error) errors.push(`Twitter: ${data.results.twitter.error}`)
+      if (data.results?.plausible?.error) errors.push(`Plausible: ${data.results.plausible.error}`)
+      
+      if (errors.length > 0) {
+        setError(errors.join('\n'))
+        setSyncing(false)
+        return
       }
       
       // Reload to show new data

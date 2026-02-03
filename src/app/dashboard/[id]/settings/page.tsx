@@ -92,27 +92,38 @@ export default function ProjectSettings({ params }: Props) {
     }
   }
 
+  const [syncError, setSyncError] = useState<string | null>(null)
+
   async function testSync(integration: string) {
     setSyncingIntegration(integration)
+    setSyncError(null)
     try {
       const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId: id, integration }),
       })
+      const data = await res.json()
+      
       if (!res.ok) {
-        const data = await res.json().catch(() => null)
         throw new Error(data?.error || 'Sync failed')
       }
-      const data = await res.json()
+      
+      // Check for integration-specific errors
+      const integrationError = data.results?.[integration]?.error
+      if (integrationError) {
+        setSyncError(`${integration}: ${integrationError}`)
+        return
+      }
+      
       if (data.success) {
-        alert(`${integration} sync successful!`)
+        alert(`${integration} sync successful! Refresh to see updated data.`)
       } else {
-        alert(`${integration} sync failed: ${data.results?.[integration]?.error || 'Unknown error'}`)
+        setSyncError(`${integration} sync failed: Unknown error`)
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sync failed'
-      alert(message)
+      setSyncError(message)
     } finally {
       setSyncingIntegration(null)
     }
@@ -260,7 +271,9 @@ export default function ProjectSettings({ params }: Props) {
                 />
               </div>
               <div className="bg-neutral-800 p-3 rounded-lg text-sm text-neutral-400">
-                <p>Twitter API requires a Bearer token configured in your environment variables.</p>
+                <p className="font-medium text-yellow-500 mb-1">⚠️ Server Configuration Required</p>
+                <p>Twitter API requires a Bearer token. Your server admin needs to set <code className="bg-neutral-900 px-1 rounded">TWITTER_BEARER_TOKEN</code> in the <code className="bg-neutral-900 px-1 rounded">.env</code> file.</p>
+                <p className="mt-2">Get your token from: <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank" rel="noopener" className="text-blue-400 hover:underline">Twitter Developer Portal</a></p>
               </div>
               {project.twitterHandle && (
                 <Button 
@@ -351,6 +364,13 @@ export default function ProjectSettings({ params }: Props) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Error Display */}
+          {syncError && (
+            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              <strong>Sync Error:</strong> {syncError}
+            </div>
+          )}
 
           {/* Save Button */}
           <div className="flex justify-end pt-4">
