@@ -1,6 +1,7 @@
 import { NextAuthOptions, Session } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { supabaseAdmin } from '@/lib/supabase'
+import crypto from 'crypto'
 
 // Extend session type
 declare module 'next-auth' {
@@ -49,13 +50,20 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        // Create new user
+        // Create new user with UUID
+        const id = crypto.randomUUID()
+        const now = new Date().toISOString()
+        const username = credentials.email.split('@')[0]
+        
         const { data: newUser, error: createError } = await supabaseAdmin
           .from('User')
           .insert({
+            id,
             email: credentials.email,
-            name: credentials.email.split('@')[0],
-            username: credentials.email.split('@')[0],
+            name: username,
+            username: username,
+            createdAt: now,
+            updatedAt: now,
           } as any)
           .select()
           .single()
