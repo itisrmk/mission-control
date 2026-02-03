@@ -29,12 +29,12 @@ export default function LandingPage() {
               <h1 className="text-xl font-bold">Mission Control</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/api/auth/signin">
+              <Link href="/auth/signin">
                 <Button variant="ghost" className="text-neutral-400 hover:text-white cursor-pointer">
                   Sign In
                 </Button>
               </Link>
-              <Link href="/api/auth/signin">
+              <Link href="/auth/signup">
                 <Button className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
                   Get Started
                 </Button>
@@ -55,7 +55,7 @@ export default function LandingPage() {
             Built for indie hackers who ship.
           </p>
           <div className="flex justify-center space-x-4">
-            <Link href="/api/auth/signin">
+            <Link href="/auth/signup">
               <Button size="lg" className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
                 Start Tracking Free
                 <ArrowRight className="h-4 w-4 ml-2" />
@@ -165,7 +165,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to track your growth?</h2>
           <p className="text-neutral-400 mb-8">Free for personal use. No credit card required.</p>
-          <Link href="/api/auth/signin">
+          <Link href="/auth/signup">
             <Button size="lg" className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
               Get Started Free
               <ArrowRight className="h-4 w-4 ml-2" />

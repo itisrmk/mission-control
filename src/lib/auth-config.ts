@@ -1,5 +1,5 @@
 import { NextAuthOptions, Session } from 'next-auth'
-import GitHubProvider from 'next-auth/providers/github'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import { supabaseAdmin } from '@/lib/supabase'
 
 // Extend session type
@@ -151,9 +151,56 @@ const SupabaseAdapter = {
 export const authOptions: NextAuthOptions = {
   adapter: SupabaseAdapter as any,
   providers: [
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID || '',
-      clientSecret: process.env.GITHUB_SECRET || '',
+    CredentialsProvider({
+      name: 'Email',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null
+        }
+
+        // Check if user exists
+        const { data: user } = await supabaseAdmin
+          .from('User')
+          .select('*')
+          .eq('email', credentials.email)
+          .single()
+
+        if (user) {
+          // User exists - return them
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          }
+        }
+
+        // Create new user
+        const { data: newUser, error } = await supabaseAdmin
+          .from('User')
+          .insert({
+            email: credentials.email,
+            name: credentials.email.split('@')[0],
+            username: credentials.email.split('@')[0],
+          } as any)
+          .select()
+          .single()
+
+        if (error || !newUser) {
+          return null
+        }
+
+        return {
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.name,
+          image: newUser.image,
+        }
+      },
     }),
   ],
   callbacks: {
@@ -165,6 +212,10 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: '/',
+    signIn: '/auth/signin',
+    signUp: '/auth/signup',
+  },
+  session: {
+    strategy: 'database',
   },
 }
