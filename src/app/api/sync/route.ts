@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { fetchGitHubMetrics } from '@/lib/integrations/github'
 import { fetchTwitterMetrics } from '@/lib/integrations/twitter'
+import { fetchPlausibleMetrics } from '@/lib/integrations/plausible'
 import { syncAllMetrics } from '@/lib/integrations/sync'
 
 // POST /api/sync - Trigger manual sync for a project
@@ -70,6 +71,26 @@ export async function POST(request: Request) {
           }
         } catch (error) {
           results.twitter = { error: (error as Error).message }
+        }
+      }
+    }
+    
+    if (!integration || integration === 'plausible') {
+      if (project.plausibleSiteId) {
+        try {
+          const apiKey = process.env.PLAUSIBLE_API_KEY
+          if (apiKey) {
+            const plausible = await fetchPlausibleMetrics(
+              project.id,
+              project.plausibleSiteId,
+              apiKey
+            )
+            results.plausible = plausible
+          } else {
+            results.plausible = { error: 'Plausible not configured' }
+          }
+        } catch (error) {
+          results.plausible = { error: (error as Error).message }
         }
       }
     }

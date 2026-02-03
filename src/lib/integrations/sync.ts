@@ -1,5 +1,6 @@
 import { syncAllGitHubMetrics } from './github'
 import { syncAllTwitterMetrics } from './twitter'
+import { syncAllPlausibleMetrics } from './plausible'
 import { prisma } from '../prisma'
 
 // Main sync function - call this periodically (e.g., every hour)
@@ -12,6 +13,9 @@ export async function syncAllMetrics() {
     
     // Sync Twitter metrics
     await syncAllTwitterMetrics()
+    
+    // Sync Plausible metrics
+    await syncAllPlausibleMetrics()
     
     // Update calculated metrics (e.g., MRR growth, churn rate)
     await updateCalculatedMetrics()

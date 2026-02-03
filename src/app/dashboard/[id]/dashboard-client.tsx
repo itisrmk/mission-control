@@ -1,0 +1,359 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Users, 
+  Code2, 
+  Twitter, 
+  Eye, 
+  Activity,
+  Flame,
+  Target,
+  Settings,
+  RefreshCw,
+  ArrowLeft
+} from 'lucide-react'
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  LineChart,
+  Line
+} from 'recharts'
+
+interface DashboardProps {
+  project: {
+    id: string
+    name: string
+    slug: string
+    description: string | null
+    isPublic: boolean
+    domain: string | null
+    githubRepo: string | null
+    twitterHandle: string | null
+    plausibleSiteId: string | null
+    stripeAccountId: string | null
+  }
+  metrics: Record<string, any>
+  goals: any[]
+  streak: number
+}
+
+export default function Dashboard({ project, metrics, goals, streak }: DashboardProps) {
+  const [syncing, setSyncing] = useState(false)
+
+  async function handleSync() {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id }),
+      })
+      if (res.ok) {
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error('Sync failed:', error)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const revenueData = [
+    { name: 'Jan', value: 800 },
+    { name: 'Feb', value: 950 },
+    { name: 'Mar', value: 1100 },
+    { name: 'Apr', value: 1050 },
+    { name: 'May', value: metrics.MRR?.value || 1247 },
+  ]
+
+  const trafficData = [
+    { name: 'Mon', views: 1200 },
+    { name: 'Tue', views: 1800 },
+    { name: 'Wed', views: 2400 },
+    { name: 'Thu', views: 2100 },
+    { name: 'Fri', views: 2800 },
+    { name: 'Sat', views: 3200 },
+    { name: 'Sun', views: metrics.PAGE_VIEWS?.value || 5400 },
+  ]
+
+  return (
+    <div className="p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <Link href="/dashboard">
+              <Button variant="outline" size="icon" className="border-neutral-700">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <div>
+              <div className="flex items-center space-x-3">
+                <h1 className="text-3xl font-bold">{project.name}</h1>
+                {project.isPublic && (
+                  <Badge className="bg-green-500/10 text-green-500">Public</Badge>
+                )}
+              </div>
+              {project.description && (
+                <p className="text-neutral-400 mt-1">{project.description}</p>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              onClick={handleSync}
+              disabled={syncing}
+              className="border-neutral-700"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+              Sync
+            </Button>
+            
+            <Link href={`/dashboard/${project.id}/settings`}>
+              <Button variant="outline" className="border-neutral-700">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Ship Streak */}
+        {streak > 0 && (
+          <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-orange-500/10 via-red-500/10 to-purple-500/10 border border-orange-500/20">
+            <div className="flex items-center space-x-4">
+              <div className="flex space-x-1">
+                {Array.from({ length: Math.min(streak, 14) }).map((_, i) => (
+                  <Flame key={i} className="h-6 w-6 text-orange-500 fill-orange-500" />
+                ))}
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Ship Streak: {streak} Days 🔥</h2>
+                <p className="text-neutral-400 text-sm">Keep shipping to maintain your streak!</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <MetricCard
+            title="Revenue"
+            value={metrics.MRR ? `$${metrics.MRR.value.toLocaleString()} MRR` : '$0 MRR'}
+            change={metrics.MRR?.metadata?.growthRate ? `+${metrics.MRR.metadata.growthRate}%` : undefined}
+            changeType="positive"
+            icon={<TrendingUp className="h-4 w-4" />}
+            connected={!!project.stripeAccountId}
+          />
+          
+          <MetricCard
+            title="Users"
+            value={metrics.TOTAL_USERS?.value?.toLocaleString() || '0'}
+            change="Total"
+            changeType="neutral"
+            icon={<Users className="h-4 w-4" />}
+          />
+          
+          <MetricCard
+            title="Code Activity"
+            value={`${metrics.GITHUB_COMMITS?.value || 0} commits`}
+            change={metrics.GITHUB_PRS?.value ? `${metrics.GITHUB_PRS.value} PRs` : undefined}
+            changeType="positive"
+            icon={<Code2 className="h-4 w-4" />}
+            connected={!!project.githubRepo}
+          />
+          
+          <MetricCard
+            title="Social"
+            value={`${metrics.TWITTER_FOLLOWERS?.value?.toLocaleString() || '0'} followers`}
+            change={metrics.TWITTER_IMPRESSIONS?.value ? `${metrics.TWITTER_IMPRESSIONS.value} tweets` : undefined}
+            changeType="positive"
+            icon={<Twitter className="h-4 w-4" />}
+            connected={!!project.twitterHandle}
+          />
+          
+          <MetricCard
+            title="Traffic"
+            value={`${metrics.PAGE_VIEWS?.value?.toLocaleString() || '0'} views`}
+            change="Last 7 days"
+            changeType="positive"
+            icon={<Eye className="h-4 w-4" />}
+            connected={!!project.plausibleSiteId}
+          />
+          
+          <MetricCard
+            title="Uptime"
+            value={`${metrics.UPTIME_PERCENTAGE?.value || 99.9}%`}
+            change="Last 30 days"
+            changeType="positive"
+            icon={<Activity className="h-4 w-4" />}
+          />
+        </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="bg-neutral-900 border-neutral-800">
+            <CardHeader>
+              <CardTitle>Revenue Trend</CardTitle>
+              <CardDescription className="text-neutral-400">Monthly recurring revenue over time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={revenueData}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+                  <XAxis dataKey="name" stroke="#525252" fontSize={12} />
+                  <YAxis stroke="#525252" fontSize={12} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626' }}
+                    labelStyle={{ color: '#a3a3a3' }}
+                  />
+                  <Area type="monotone" dataKey="value" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRevenue)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-neutral-900 border-neutral-800">
+            <CardHeader>
+              <CardTitle>Traffic Overview</CardTitle>
+              <CardDescription className="text-neutral-400">Page views over the last 7 days</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={trafficData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+                  <XAxis dataKey="name" stroke="#525252" fontSize={12} />
+                  <YAxis stroke="#525252" fontSize={12} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626' }}
+                    labelStyle={{ color: '#a3a3a3' }}
+                  />
+                  <Line type="monotone" dataKey="views" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981' }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Goals */}
+        {goals.length > 0 && (
+          <div className="mb-8">
+            <Card className="bg-neutral-900 border-neutral-800">
+              <CardHeader>
+                <div className="flex items-center space-x-2">
+                  <Target className="h-5 w-5 text-purple-500" />
+                  <CardTitle>Goals</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {goals.map((goal) => (
+                  <div key={goal.id} className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-neutral-300">{goal.title}</span>
+                      <span className="text-neutral-400">
+                        {goal.current.toLocaleString()} / {goal.target.toLocaleString()} {goal.unit}
+                        {' '}
+                        ({Math.round((goal.current / goal.target) * 100)}%)
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(goal.current / goal.target) * 100} 
+                      className="h-2 bg-neutral-800" 
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Integrations */}
+        <div className="text-center">
+          <p className="text-sm text-neutral-500 mb-3">Connected Integrations</p>
+          <div className="flex justify-center space-x-4">
+            {[
+              { name: 'Stripe', connected: !!project.stripeAccountId },
+              { name: 'GitHub', connected: !!project.githubRepo },
+              { name: 'Twitter', connected: !!project.twitterHandle },
+              { name: 'Plausible', connected: !!project.plausibleSiteId },
+            ].map((integration) => (
+              <Badge 
+                key={integration.name}
+                variant="secondary" 
+                className={`${integration.connected ? 'bg-green-500/10 text-green-500' : 'bg-neutral-800 text-neutral-500'} border-neutral-700`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${integration.connected ? 'bg-green-500' : 'bg-neutral-600'}`} />
+                {integration.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface MetricCardProps {
+  title: string
+  value: string
+  change?: string
+  changeType: 'positive' | 'negative' | 'neutral'
+  icon: React.ReactNode
+  connected?: boolean
+}
+
+function MetricCard({ title, value, change, changeType, icon, connected }: MetricCardProps) {
+  const changeColors = {
+    positive: 'text-green-500',
+    negative: 'text-red-500',
+    neutral: 'text-neutral-500',
+  }
+
+  const ChangeIcon = changeType === 'positive' ? TrendingUp : changeType === 'negative' ? TrendingDown : Activity
+
+  return (
+    <Card className="bg-neutral-900 border-neutral-800">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-neutral-400">{title}</CardTitle>
+        <div className="flex items-center space-x-2">
+          {connected !== undefined && (
+            <span className={`h-2 w-2 rounded-full ${connected ? 'bg-green-500' : 'bg-neutral-600'}`} />
+          )}
+          <div className="h-8 w-8 rounded-lg bg-neutral-800 flex items-center justify-center text-neutral-400">
+            {icon}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-white">{value}</div>
+        {change && (
+          <div className="flex items-center text-xs mt-1">
+            <ChangeIcon className={`h-3 w-3 mr-1 ${changeColors[changeType]}`} />
+            <span className={changeColors[changeType]}>{change}</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
