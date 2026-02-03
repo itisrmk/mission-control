@@ -18,7 +18,9 @@ import {
   Target,
   Settings,
   RefreshCw,
-  ArrowLeft
+  ArrowLeft,
+  Plus,
+  AlertCircle
 } from 'lucide-react'
 import { 
   AreaChart, 
@@ -52,46 +54,57 @@ interface DashboardProps {
 
 export default function Dashboard({ project, metrics, goals, streak }: DashboardProps) {
   const [syncing, setSyncing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSync() {
     setSyncing(true)
+    setError(null)
     try {
       const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId: project.id }),
       })
-      if (res.ok) {
-        window.location.reload()
+      
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Sync failed')
       }
-    } catch (error) {
-      console.error('Sync failed:', error)
-    } finally {
+      
+      // Reload to show new data
+      window.location.reload()
+    } catch (err: any) {
+      console.error('Sync failed:', err)
+      setError(err.message || 'Failed to sync. Please check your integration settings.')
       setSyncing(false)
     }
   }
 
-  const revenueData = [
-    { name: 'Jan', value: 800 },
-    { name: 'Feb', value: 950 },
-    { name: 'Mar', value: 1100 },
-    { name: 'Apr', value: 1050 },
-    { name: 'May', value: metrics.MRR?.value || 1247 },
-  ]
+  // Build chart data from actual metrics - NO FAKE DATA
+  const revenueHistory = metrics.MRR ? [
+    { name: 'Current', value: metrics.MRR.value }
+  ] : []
+  
+  const trafficHistory = metrics.PAGE_VIEWS ? [
+    { name: 'Current', views: metrics.PAGE_VIEWS.value }
+  ] : []
 
-  const trafficData = [
-    { name: 'Mon', views: 1200 },
-    { name: 'Tue', views: 1800 },
-    { name: 'Wed', views: 2400 },
-    { name: 'Thu', views: 2100 },
-    { name: 'Fri', views: 2800 },
-    { name: 'Sat', views: 3200 },
-    { name: 'Sun', views: metrics.PAGE_VIEWS?.value || 5400 },
-  ]
+  // Check if we have any real data
+  const hasRevenueData = !!metrics.MRR?.value
+  const hasTrafficData = !!metrics.PAGE_VIEWS?.value
+  const hasAnyMetrics = Object.keys(metrics).length > 0
 
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            <p className="text-red-400">{error}</p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
@@ -121,7 +134,7 @@ export default function Dashboard({ project, metrics, goals, streak }: Dashboard
               className="border-neutral-700"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-              Sync
+              {syncing ? 'Syncing...' : 'Sync'}
             </Button>
             
             <Link href={`/dashboard/${project.id}/settings`}>
@@ -150,111 +163,176 @@ export default function Dashboard({ project, metrics, goals, streak }: Dashboard
           </div>
         )}
 
-        {/* Metrics Grid */}
+        {/* Metrics Grid - NO FAKE DATA */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {/* Revenue - Show empty state if no Stripe connected */}
           <MetricCard
             title="Revenue"
-            value={metrics.MRR ? `$${metrics.MRR.value.toLocaleString()} MRR` : '$0 MRR'}
+            value={hasRevenueData ? `$${metrics.MRR.value.toLocaleString()} MRR` : '--'}
+            subtitle={!project.stripeAccountId ? 'Connect Stripe' : !hasRevenueData ? 'No data yet' : undefined}
             change={metrics.MRR?.metadata?.growthRate ? `+${metrics.MRR.metadata.growthRate}%` : undefined}
             changeType="positive"
             icon={<TrendingUp className="h-4 w-4" />}
             connected={!!project.stripeAccountId}
+            hasData={hasRevenueData}
           />
           
+          {/* Users */}
           <MetricCard
             title="Users"
-            value={metrics.TOTAL_USERS?.value?.toLocaleString() || '0'}
-            change="Total"
+            value={metrics.TOTAL_USERS?.value?.toLocaleString() || '--'}
+            subtitle={!metrics.TOTAL_USERS ? 'No data yet' : undefined}
+            change={metrics.TOTAL_USERS ? 'Total' : undefined}
             changeType="neutral"
             icon={<Users className="h-4 w-4" />}
+            hasData={!!metrics.TOTAL_USERS}
           />
           
+          {/* Code Activity */}
           <MetricCard
             title="Code Activity"
-            value={`${metrics.GITHUB_COMMITS?.value || 0} commits`}
+            value={metrics.GITHUB_COMMITS?.value !== undefined ? `${metrics.GITHUB_COMMITS.value} commits` : '--'}
+            subtitle={!project.githubRepo ? 'Connect GitHub' : !metrics.GITHUB_COMMITS ? 'No data yet' : undefined}
             change={metrics.GITHUB_PRS?.value ? `${metrics.GITHUB_PRS.value} PRs` : undefined}
             changeType="positive"
             icon={<Code2 className="h-4 w-4" />}
             connected={!!project.githubRepo}
+            hasData={!!metrics.GITHUB_COMMITS}
           />
           
+          {/* Social */}
           <MetricCard
             title="Social"
-            value={`${metrics.TWITTER_FOLLOWERS?.value?.toLocaleString() || '0'} followers`}
+            value={metrics.TWITTER_FOLLOWERS?.value !== undefined ? `${metrics.TWITTER_FOLLOWERS.value.toLocaleString()} followers` : '--'}
+            subtitle={!project.twitterHandle ? 'Connect Twitter' : !metrics.TWITTER_FOLLOWERS ? 'No data yet' : undefined}
             change={metrics.TWITTER_IMPRESSIONS?.value ? `${metrics.TWITTER_IMPRESSIONS.value} tweets` : undefined}
             changeType="positive"
             icon={<Twitter className="h-4 w-4" />}
             connected={!!project.twitterHandle}
+            hasData={!!metrics.TWITTER_FOLLOWERS}
           />
           
+          {/* Traffic */}
           <MetricCard
             title="Traffic"
-            value={`${metrics.PAGE_VIEWS?.value?.toLocaleString() || '0'} views`}
-            change="Last 7 days"
+            value={metrics.PAGE_VIEWS?.value !== undefined ? `${metrics.PAGE_VIEWS.value.toLocaleString()} views` : '--'}
+            subtitle={!project.plausibleSiteId ? 'Connect Plausible' : !metrics.PAGE_VIEWS ? 'No data yet' : undefined}
+            change={metrics.PAGE_VIEWS ? 'Last 7 days' : undefined}
             changeType="positive"
             icon={<Eye className="h-4 w-4" />}
             connected={!!project.plausibleSiteId}
+            hasData={!!metrics.PAGE_VIEWS}
           />
           
+          {/* Uptime */}
           <MetricCard
             title="Uptime"
-            value={`${metrics.UPTIME_PERCENTAGE?.value || 99.9}%`}
-            change="Last 30 days"
+            value={metrics.UPTIME_PERCENTAGE?.value !== undefined ? `${metrics.UPTIME_PERCENTAGE.value}%` : '--'}
+            subtitle={!metrics.UPTIME_PERCENTAGE ? 'No data yet' : undefined}
+            change={metrics.UPTIME_PERCENTAGE ? 'Last 30 days' : undefined}
             changeType="positive"
             icon={<Activity className="h-4 w-4" />}
+            hasData={!!metrics.UPTIME_PERCENTAGE}
           />
         </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card className="bg-neutral-900 border-neutral-800">
-            <CardHeader>
-              <CardTitle>Revenue Trend</CardTitle>
-              <CardDescription className="text-neutral-400">Monthly recurring revenue over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={revenueData}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                  <XAxis dataKey="name" stroke="#525252" fontSize={12} />
-                  <YAxis stroke="#525252" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626' }}
-                    labelStyle={{ color: '#a3a3a3' }}
-                  />
-                  <Area type="monotone" dataKey="value" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRevenue)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Empty State - No metrics at all */}
+        {!hasAnyMetrics && (
+          <div className="mb-8 p-8 rounded-2xl bg-neutral-900 border border-neutral-800 text-center">
+            <div className="h-16 w-16 rounded-full bg-neutral-800 flex items-center justify-center mx-auto mb-4">
+              <Plus className="h-8 w-8 text-neutral-500" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No metrics yet</h3>
+            <p className="text-neutral-400 mb-4 max-w-md mx-auto">
+              Connect your integrations in settings to start tracking metrics. 
+              We support Stripe, GitHub, Twitter, and Plausible Analytics.
+            </p>
+            <Link href={`/dashboard/${project.id}/settings`}>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                Connect Integrations
+              </Button>
+            </Link>
+          </div>
+        )}
 
-          <Card className="bg-neutral-900 border-neutral-800">
-            <CardHeader>
-              <CardTitle>Traffic Overview</CardTitle>
-              <CardDescription className="text-neutral-400">Page views over the last 7 days</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={trafficData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                  <XAxis dataKey="name" stroke="#525252" fontSize={12} />
-                  <YAxis stroke="#525252" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626' }}
-                    labelStyle={{ color: '#a3a3a3' }}
-                  />
-                  <Line type="monotone" dataKey="views" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981' }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Charts - Only show if we have data */}
+        {(hasRevenueData || hasTrafficData) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Revenue Chart */}
+            {hasRevenueData && revenueHistory.length > 1 ? (
+              <Card className="bg-neutral-900 border-neutral-800">
+                <CardHeader>
+                  <CardTitle>Revenue Trend</CardTitle>
+                  <CardDescription className="text-neutral-400">Monthly recurring revenue over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <AreaChart data={revenueHistory}>
+                      <defs>
+                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+                      <XAxis dataKey="name" stroke="#525252" fontSize={12} />
+                      <YAxis stroke="#525252" fontSize={12} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626' }}
+                        labelStyle={{ color: '#a3a3a3' }}
+                      />
+                      <Area type="monotone" dataKey="value" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRevenue)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            ) : hasRevenueData ? (
+              <Card className="bg-neutral-900 border-neutral-800">
+                <CardHeader>
+                  <CardTitle>Revenue Trend</CardTitle>
+                  <CardDescription className="text-neutral-400">Monthly recurring revenue over time</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center justify-center h-[200px]">
+                  <p className="text-neutral-500">Need more data points to show chart</p>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {/* Traffic Chart */}
+            {hasTrafficData && trafficHistory.length > 1 ? (
+              <Card className="bg-neutral-900 border-neutral-800">
+                <CardHeader>
+                  <CardTitle>Traffic Overview</CardTitle>
+                  <CardDescription className="text-neutral-400">Page views over the last 7 days</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={trafficHistory}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+                      <XAxis dataKey="name" stroke="#525252" fontSize={12} />
+                      <YAxis stroke="#525252" fontSize={12} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626' }}
+                        labelStyle={{ color: '#a3a3a3' }}
+                      />
+                      <Line type="monotone" dataKey="views" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981' }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            ) : hasTrafficData ? (
+              <Card className="bg-neutral-900 border-neutral-800">
+                <CardHeader>
+                  <CardTitle>Traffic Overview</CardTitle>
+                  <CardDescription className="text-neutral-400">Page views over the last 7 days</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center justify-center h-[200px]">
+                  <p className="text-neutral-500">Need more data points to show chart</p>
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
+        )}
 
         {/* Goals */}
         {goals.length > 0 && (
@@ -317,13 +395,15 @@ export default function Dashboard({ project, metrics, goals, streak }: Dashboard
 interface MetricCardProps {
   title: string
   value: string
+  subtitle?: string
   change?: string
   changeType: 'positive' | 'negative' | 'neutral'
   icon: React.ReactNode
   connected?: boolean
+  hasData?: boolean
 }
 
-function MetricCard({ title, value, change, changeType, icon, connected }: MetricCardProps) {
+function MetricCard({ title, value, subtitle, change, changeType, icon, connected, hasData }: MetricCardProps) {
   const changeColors = {
     positive: 'text-green-500',
     negative: 'text-red-500',
@@ -333,7 +413,7 @@ function MetricCard({ title, value, change, changeType, icon, connected }: Metri
   const ChangeIcon = changeType === 'positive' ? TrendingUp : changeType === 'negative' ? TrendingDown : Activity
 
   return (
-    <Card className="bg-neutral-900 border-neutral-800">
+    <Card className={`bg-neutral-900 border-neutral-800 ${!hasData && connected === false ? 'opacity-75' : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-neutral-400">{title}</CardTitle>
         <div className="flex items-center space-x-2">
@@ -346,8 +426,11 @@ function MetricCard({ title, value, change, changeType, icon, connected }: Metri
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-white">{value}</div>
-        {change && (
+        <div className={`text-2xl font-bold ${hasData ? 'text-white' : 'text-neutral-500'}`}>{value}</div>
+        {subtitle && (
+          <p className="text-xs text-neutral-500 mt-1">{subtitle}</p>
+        )}
+        {change && hasData && (
           <div className="flex items-center text-xs mt-1">
             <ChangeIcon className={`h-3 w-3 mr-1 ${changeColors[changeType]}`} />
             <span className={changeColors[changeType]}>{change}</span>

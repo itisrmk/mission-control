@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, ExternalLink, Settings } from 'lucide-react'
+import NewProjectButton from './new-project-button'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -32,12 +33,11 @@ export default async function DashboardPage() {
             <p className="text-neutral-400 mt-1">Manage your indie projects and track their metrics</p>
           </div>
           
-          <Link href="/dashboard/projects/new">
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              New Project
-            </Button>
-          </Link>
+          <NewProjectButton
+            label="New Project"
+            withIcon
+            className="bg-blue-600 hover:bg-blue-700"
+          />
         </div>
 
         {projects.length === 0 ? (
@@ -48,11 +48,10 @@ export default async function DashboardPage() {
               </div>
               <h3 className="text-lg font-medium mb-2">No projects yet</h3>
               <p className="text-neutral-400 mb-4">Create your first project to start tracking metrics</p>
-              <Link href="/dashboard/projects/new">
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  Create Project
-                </Button>
-              </Link>
+              <NewProjectButton
+                label="Create Project"
+                className="bg-blue-600 hover:bg-blue-700"
+              />
             </CardContent>
           </Card>
         ) : (

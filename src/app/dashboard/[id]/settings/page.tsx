@@ -40,6 +40,7 @@ export default function ProjectSettings({ params }: Props) {
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [syncingIntegration, setSyncingIntegration] = useState<string | null>(null)
   const [formData, setFormData] = useState<Partial<Project>>({})
 
   useEffect(() => {
@@ -75,26 +76,34 @@ export default function ProjectSettings({ params }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       })
-      if (res.ok) {
-        const updated = await res.json()
-        setProject(updated)
-        alert('Settings saved!')
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.error || 'Failed to save')
       }
+      const updated = await res.json()
+      setProject(updated)
+      alert('Settings saved!')
     } catch (error) {
       console.error('Error saving:', error)
-      alert('Failed to save')
+      const message = error instanceof Error ? error.message : 'Failed to save'
+      alert(message)
     } finally {
       setSaving(false)
     }
   }
 
   async function testSync(integration: string) {
+    setSyncingIntegration(integration)
     try {
       const res = await fetch('/api/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId: id, integration }),
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.error || 'Sync failed')
+      }
       const data = await res.json()
       if (data.success) {
         alert(`${integration} sync successful!`)
@@ -102,7 +111,10 @@ export default function ProjectSettings({ params }: Props) {
         alert(`${integration} sync failed: ${data.results?.[integration]?.error || 'Unknown error'}`)
       }
     } catch (error) {
-      alert('Sync failed')
+      const message = error instanceof Error ? error.message : 'Sync failed'
+      alert(message)
+    } finally {
+      setSyncingIntegration(null)
     }
   }
 
@@ -205,9 +217,17 @@ export default function ProjectSettings({ params }: Props) {
                 <Button 
                   variant="outline" 
                   onClick={() => testSync('github')}
+                  disabled={syncingIntegration === 'github'}
                   className="border-neutral-700"
                 >
-                  Test Sync
+                  {syncingIntegration === 'github' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    'Test Sync'
+                  )}
                 </Button>
               )}
             </CardContent>
@@ -246,9 +266,17 @@ export default function ProjectSettings({ params }: Props) {
                 <Button 
                   variant="outline" 
                   onClick={() => testSync('twitter')}
+                  disabled={syncingIntegration === 'twitter'}
                   className="border-neutral-700"
                 >
-                  Test Sync
+                  {syncingIntegration === 'twitter' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    'Test Sync'
+                  )}
                 </Button>
               )}
             </CardContent>
@@ -287,9 +315,17 @@ export default function ProjectSettings({ params }: Props) {
                 <Button 
                   variant="outline" 
                   onClick={() => testSync('plausible')}
+                  disabled={syncingIntegration === 'plausible'}
                   className="border-neutral-700"
                 >
-                  Test Sync
+                  {syncingIntegration === 'plausible' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    'Test Sync'
+                  )}
                 </Button>
               )}
             </CardContent>
