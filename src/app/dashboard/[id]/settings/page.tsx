@@ -407,14 +407,7 @@ export default function ProjectSettings({ params }: Props) {
                   disabled={syncingIntegration === 'plausible'}
                   className="border-neutral-700 text-white hover:text-white hover:bg-neutral-800"
                 >
-                  {syncingIntegration === 'plausible' ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    'Test Sync'
-                  )
+                  {syncingIntegration === 'plausible' ? 'Syncing...' : 'Test Sync'}
                 </Button>
               )}
             </CardContent>
