@@ -14,8 +14,15 @@ import {
   Globe,
   Check,
   X,
-  Loader2
+  Loader2,
+  ChevronDown,
+  HelpCircle
 } from 'lucide-react'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 interface Project {
   id: string
@@ -366,26 +373,108 @@ export default function ProjectSettings({ params }: Props) {
             </CardContent>
           </Card>
 
-          {/* Stripe - Read Only */}
-          <Card className="bg-neutral-900 border-neutral-800">
-            <CardHeader>
+          {/* GitHub Instructions */}
+          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-sm text-neutral-400 hover:text-white transition-colors">
               <div className="flex items-center space-x-2">
-                <CreditCard className="h-5 w-5" />
-                <CardTitle>Stripe</CardTitle>
+                <HelpCircle className="h-4 w-4" />
+                <span>How to connect GitHub?</span>
               </div>
-              <CardDescription className="text-neutral-400">
-                Revenue tracking via webhooks
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-neutral-800 p-3 rounded-lg text-sm text-neutral-400">
-                <p>Stripe is configured via webhooks. Set up your webhook endpoint in Stripe Dashboard:</p>
-                <code className="block mt-2 bg-neutral-900 p-2 rounded text-xs">
-                  POST /api/webhooks/stripe
-                </code>
+              <ChevronDown className="h-4 w-4" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-3 text-sm text-neutral-400 space-y-2">
+              <ol className="list-decimal list-inside space-y-1 ml-1">
+                <li>Go to <a href="https://github.com/settings/tokens" target="_blank" rel="noopener" className="text-blue-400 hover:underline">GitHub Settings → Developer settings → Personal access tokens</a></li>
+                <li>Click "Generate new token (classic)"</li>
+                <li>Give it a name like "Mission Control"</li>
+                <li>Select scopes: <code className="bg-neutral-900 px-1 rounded">repo</code> (for private repos) or <code className="bg-neutral-900 px-1 rounded">public_repo</code> (for public only)</li>
+                <li>Click "Generate token" and copy it</li>
+                <li>Enter your repo as <code className="bg-neutral-900 px-1 rounded">owner/repo</code> (e.g., <code className="bg-neutral-900 px-1 rounded">rahulkashyap/mission-control</code>)</li>
+                <li>Paste the token and click Save</li>
+              </ol>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Twitter Instructions */}
+          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-sm text-neutral-400 hover:text-white transition-colors">
+              <div className="flex items-center space-x-2">
+                <HelpCircle className="h-4 w-4" />
+                <span>How to connect Twitter?</span>
               </div>
-            </CardContent>
-          </Card>
+              <ChevronDown className="h-4 w-4" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-3 text-sm text-neutral-400 space-y-2">
+              <ol className="list-decimal list-inside space-y-1 ml-1">
+                <li>Go to <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank" rel="noopener" className="text-blue-400 hover:underline">Twitter Developer Portal</a></li>
+                <li>Sign up for a free developer account (if you haven't)</li>
+                <li>Create a new Project, then create an App</li>
+                <li>Go to your App → "Keys and Tokens" tab</li>
+                <li>Copy the "Bearer Token" (starts with AAAA...)</li>
+                <li>Enter your username (with or without @)</li>
+                <li>Paste the Bearer Token and click Save</li>
+              </ol>
+              <p className="text-xs text-neutral-500 mt-2">Note: Free tier has rate limits. For high-traffic accounts, consider Elevated access.</p>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Plausible Instructions */}
+          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-sm text-neutral-400 hover:text-white transition-colors">
+              <div className="flex items-center space-x-2">
+                <HelpCircle className="h-4 w-4" />
+                <span>How to connect Plausible?</span>
+              </div>
+              <ChevronDown className="h-4 w-4" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-3 text-sm text-neutral-400 space-y-2">
+              <ol className="list-decimal list-inside space-y-1 ml-1">
+                <li>Go to your <a href="https://plausible.io/sites" target="_blank" rel="noopener" className="text-blue-400 hover:underline">Plausible Dashboard</a></li>
+                <li>Click on your site</li>
+                <li>Go to Settings → API</li>
+                <li>Click "Generate API Key"</li>
+                <li>Copy the API key</li>
+                <li>Enter your Site ID (your domain, e.g., <code className="bg-neutral-900 px-1 rounded">example.com</code>)</li>
+                <li>Paste the API Key and click Save</li>
+              </ol>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Stripe Instructions */}
+          <Collapsible className="bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 text-sm text-neutral-400 hover:text-white transition-colors">
+              <div className="flex items-center space-x-2">
+                <HelpCircle className="h-4 w-4" />
+                <span>How to connect Stripe?</span>
+              </div>
+              <ChevronDown className="h-4 w-4" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-3 text-sm text-neutral-400 space-y-3">
+              <p>Stripe connects via webhooks to track revenue in real-time:</p>
+              <ol className="list-decimal list-inside space-y-1 ml-1">
+                <li>Go to your <a href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener" className="text-blue-400 hover:underline">Stripe Dashboard → Developers → Webhooks</a></li>
+                <li>Click "Add endpoint"</li>
+                <li>Enter this URL:</li>
+              </ol>
+              <code className="block bg-neutral-900 p-2 rounded text-xs font-mono">
+                https://your-domain.com/api/webhooks/stripe
+              </code>
+              <p className="text-xs text-neutral-500">Replace "your-domain.com" with your actual domain (e.g., mission-control.vercel.app)</p>
+              <ol className="list-decimal list-inside space-y-1 ml-1" start="4">
+                <li>Select these events to listen for:
+                  <ul className="list-disc list-inside ml-4 mt-1 text-xs">
+                    <li><code className="bg-neutral-900 px-1 rounded">charge.succeeded</code></li>
+                    <li><code className="bg-neutral-900 px-1 rounded">invoice.payment_succeeded</code></li>
+                    <li><code className="bg-neutral-900 px-1 rounded">customer.subscription.created</code></li>
+                  </ul>
+                </li>
+                <li>Click "Add endpoint"</li>
+                <li>Copy the "Signing secret" (starts with whsec_)</li>
+                <li>Contact the site admin to add the webhook secret to the server</li>
+              </ol>
+              <p className="text-xs text-yellow-500 mt-2">⚠️ Note: Stripe requires server-side webhook configuration. The site owner needs to add your webhook secret to the environment variables.</p>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Error Display */}
           {syncError && (
