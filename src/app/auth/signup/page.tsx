@@ -109,7 +109,7 @@ export default function SignUpPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 disabled={loading}
               >
                 {loading ? 'Creating account...' : 'Create Account'}

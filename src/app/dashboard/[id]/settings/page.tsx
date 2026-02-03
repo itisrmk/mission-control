@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,13 +30,13 @@ interface Project {
 }
 
 interface Props {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function ProjectSettings({ params }: Props) {
-  const { id } = params
+  const { id } = React.use(params)
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -218,7 +218,7 @@ export default function ProjectSettings({ params }: Props) {
                   variant="outline" 
                   onClick={() => testSync('github')}
                   disabled={syncingIntegration === 'github'}
-                  className="border-neutral-700"
+                  className="border-neutral-700 text-white hover:text-white hover:bg-neutral-800"
                 >
                   {syncingIntegration === 'github' ? (
                     <>
@@ -267,7 +267,7 @@ export default function ProjectSettings({ params }: Props) {
                   variant="outline" 
                   onClick={() => testSync('twitter')}
                   disabled={syncingIntegration === 'twitter'}
-                  className="border-neutral-700"
+                  className="border-neutral-700 text-white hover:text-white hover:bg-neutral-800"
                 >
                   {syncingIntegration === 'twitter' ? (
                     <>
@@ -316,7 +316,7 @@ export default function ProjectSettings({ params }: Props) {
                   variant="outline" 
                   onClick={() => testSync('plausible')}
                   disabled={syncingIntegration === 'plausible'}
-                  className="border-neutral-700"
+                  className="border-neutral-700 text-white hover:text-white hover:bg-neutral-800"
                 >
                   {syncingIntegration === 'plausible' ? (
                     <>
@@ -357,7 +357,7 @@ export default function ProjectSettings({ params }: Props) {
             <Button 
               onClick={handleSave}
               disabled={saving}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {saving ? (
                 <>

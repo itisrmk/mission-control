@@ -53,7 +53,7 @@ export default async function DashboardPage() {
           <NewProjectButton
             label="New Project"
             withIcon
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
           />
         </div>
 
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
               <p className="text-neutral-400 mb-4">Create your first project to start tracking metrics</p>
               <NewProjectButton
                 label="Create Project"
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               />
             </CardContent>
           </Card>

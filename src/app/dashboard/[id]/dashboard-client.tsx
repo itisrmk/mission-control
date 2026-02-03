@@ -109,7 +109,7 @@ export default function Dashboard({ project, metrics, goals, streak }: Dashboard
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
             <Link href="/dashboard">
-              <Button variant="outline" size="icon" className="border-neutral-700">
+              <Button variant="outline" size="icon" className="border-neutral-700 text-white hover:text-white hover:bg-neutral-800">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
@@ -131,14 +131,14 @@ export default function Dashboard({ project, metrics, goals, streak }: Dashboard
               variant="outline"
               onClick={handleSync}
               disabled={syncing}
-              className="border-neutral-700"
+              className="border-neutral-700 text-white hover:text-white hover:bg-neutral-800"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? 'Syncing...' : 'Sync'}
             </Button>
             
             <Link href={`/dashboard/${project.id}/settings`}>
-              <Button variant="outline" className="border-neutral-700">
+              <Button variant="outline" className="border-neutral-700 text-white hover:text-white hover:bg-neutral-800">
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </Button>
