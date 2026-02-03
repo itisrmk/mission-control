@@ -14,145 +14,10 @@ declare module 'next-auth' {
   }
 }
 
-// Custom Supabase adapter for NextAuth
-const SupabaseAdapter = {
-  async createUser(user: any) {
-    const { data, error } = await supabaseAdmin
-      .from('User')
-      .insert({
-        email: user.email,
-        name: user.name,
-        image: user.image,
-        username: user.email?.split('@')[0],
-      } as any)
-      .select()
-      .single()
-    
-    if (error) throw error
-    return data
-  },
-
-  async getUser(id: string) {
-    const { data } = await supabaseAdmin
-      .from('User')
-      .select('*')
-      .eq('id', id)
-      .single()
-    return data
-  },
-
-  async getUserByEmail(email: string) {
-    const { data } = await supabaseAdmin
-      .from('User')
-      .select('*')
-      .eq('email', email)
-      .single()
-    return data
-  },
-
-  async getUserByAccount({ providerAccountId, provider }: { providerAccountId: string; provider: string }) {
-    const { data: account } = await supabaseAdmin
-      .from('Account')
-      .select('user:User(*)')
-      .eq('provider', provider)
-      .eq('providerAccountId', providerAccountId)
-      .single()
-    
-    return account?.user || null
-  },
-
-  async updateUser(user: any) {
-    const { data, error } = await supabaseAdmin
-      .from('User')
-      .update({
-        name: user.name,
-        email: user.email,
-        image: user.image,
-      })
-      .eq('id', user.id)
-      .select()
-      .single()
-    
-    if (error) throw error
-    return data
-  },
-
-  async deleteUser(userId: string) {
-    await supabaseAdmin.from('User').delete().eq('id', userId)
-  },
-
-  async linkAccount(account: any) {
-    await supabaseAdmin.from('Account').insert({
-      userId: account.userId,
-      type: account.type,
-      provider: account.provider,
-      providerAccountId: account.providerAccountId,
-      refresh_token: account.refresh_token,
-      access_token: account.access_token,
-      expires_at: account.expires_at,
-      token_type: account.token_type,
-      scope: account.scope,
-      id_token: account.id_token,
-      session_state: account.session_state,
-    } as any)
-  },
-
-  async unlinkAccount({ providerAccountId, provider }: { providerAccountId: string; provider: string }) {
-    await supabaseAdmin
-      .from('Account')
-      .delete()
-      .eq('provider', provider)
-      .eq('providerAccountId', providerAccountId)
-  },
-
-  async createSession(session: any) {
-    const { data, error } = await supabaseAdmin
-      .from('Session')
-      .insert({
-        userId: session.userId,
-        sessionToken: session.sessionToken,
-        expires: session.expires,
-      } as any)
-      .select()
-      .single()
-    
-    if (error) throw error
-    return data
-  },
-
-  async getSessionAndUser(sessionToken: string) {
-    const { data: session } = await supabaseAdmin
-      .from('Session')
-      .select('*, user:User(*)')
-      .eq('sessionToken', sessionToken)
-      .single()
-    
-    if (!session) return null
-    return { session, user: session.user }
-  },
-
-  async updateSession(session: any) {
-    const { data, error } = await supabaseAdmin
-      .from('Session')
-      .update({ expires: session.expires })
-      .eq('sessionToken', session.sessionToken)
-      .select()
-      .single()
-    
-    if (error) throw error
-    return data
-  },
-
-  async deleteSession(sessionToken: string) {
-    await supabaseAdmin.from('Session').delete().eq('sessionToken', sessionToken)
-  },
-}
-
 export const authOptions: NextAuthOptions = {
-  adapter: SupabaseAdapter as any,
   providers: [
     CredentialsProvider({
-      name: 'Email',
+      name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
@@ -163,11 +28,16 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Check if user exists
-        const { data: user } = await supabaseAdmin
+        const { data: user, error: userError } = await supabaseAdmin
           .from('User')
           .select('*')
           .eq('email', credentials.email)
           .single()
+
+        if (userError && userError.code !== 'PGRST116') {
+          // PGRST116 = no rows returned, which is fine
+          console.error('Error fetching user:', userError)
+        }
 
         if (user) {
           // User exists - return them
@@ -180,7 +50,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Create new user
-        const { data: newUser, error } = await supabaseAdmin
+        const { data: newUser, error: createError } = await supabaseAdmin
           .from('User')
           .insert({
             email: credentials.email,
@@ -190,7 +60,12 @@ export const authOptions: NextAuthOptions = {
           .select()
           .single()
 
-        if (error || !newUser) {
+        if (createError) {
+          console.error('Error creating user:', createError)
+          return null
+        }
+
+        if (!newUser) {
           return null
         }
 
@@ -204,17 +79,33 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    session: async ({ session, user }) => {
-      if (session?.user) {
-        ;(session.user as any).id = user.id
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+        token.email = user.email
+        token.name = user.name
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (token && session.user) {
+        session.user.id = token.id as string
+        session.user.email = token.email as string
+        session.user.name = token.name as string
       }
       return session
     },
   },
   pages: {
     signIn: '/auth/signin',
+    error: '/auth/signin',
   },
   session: {
-    strategy: 'database',
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  secret: process.env.NEXTAUTH_SECRET,
 }
