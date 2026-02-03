@@ -32,8 +32,10 @@ export async function fetchTwitterMetrics(projectId: string, handle: string, bea
       throw new Error('No metrics found for user')
     }
     
-    // Save followers metric
+    // Save followers metric with UUID and timestamps
+    const now = new Date().toISOString()
     await supabaseAdmin.from('Metric').insert({
+      id: crypto.randomUUID(),
       projectId,
       type: 'TWITTER_FOLLOWERS',
       value: metrics.followers_count || 0,
@@ -42,10 +44,12 @@ export async function fetchTwitterMetrics(projectId: string, handle: string, bea
         following_count: metrics.following_count,
         tweet_count: metrics.tweet_count,
       },
+      recordedAt: now,
     } as any)
     
     // Save tweet count as engagement metric
     await supabaseAdmin.from('Metric').insert({
+      id: crypto.randomUUID(),
       projectId,
       type: 'TWITTER_IMPRESSIONS',
       value: metrics.tweet_count || 0,
@@ -53,6 +57,7 @@ export async function fetchTwitterMetrics(projectId: string, handle: string, bea
         handle,
         listed_count: metrics.listed_count,
       },
+      recordedAt: now,
     } as any)
     
     return {

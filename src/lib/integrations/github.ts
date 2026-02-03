@@ -50,8 +50,10 @@ export async function fetchGitHubMetrics(projectId: string, accessToken: string,
     const prs = await prsResponse.json()
     const prCount = Array.isArray(prs) ? prs.length : 0
     
-    // Save metrics
+    // Save metrics with UUID and timestamps
+    const now = new Date().toISOString()
     await supabaseAdmin.from('Metric').insert({
+      id: crypto.randomUUID(),
       projectId,
       type: 'GITHUB_COMMITS',
       value: commitCount,
@@ -59,15 +61,18 @@ export async function fetchGitHubMetrics(projectId: string, accessToken: string,
         period: '30d',
         repo: repoFullName,
       },
+      recordedAt: now,
     } as any)
     
     await supabaseAdmin.from('Metric').insert({
+      id: crypto.randomUUID(),
       projectId,
       type: 'GITHUB_PRS',
       value: prCount,
       metadata: {
         repo: repoFullName,
       },
+      recordedAt: now,
     } as any)
     
     return { commits: commitCount, prs: prCount }

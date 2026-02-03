@@ -6,6 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -52,9 +55,19 @@ interface DashboardProps {
   streak: number
 }
 
-export default function Dashboard({ project, metrics, goals, streak }: DashboardProps) {
+export default function Dashboard({ project, metrics, goals: initialGoals, streak }: DashboardProps) {
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showGoalDialog, setShowGoalDialog] = useState(false)
+  const [goals, setGoals] = useState(initialGoals)
+  const [creatingGoal, setCreatingGoal] = useState(false)
+  const [goalForm, setGoalForm] = useState({
+    title: '',
+    description: '',
+    target: '',
+    unit: '',
+    current: '0'
+  })
 
   async function handleSync() {
     setSyncing(true)
@@ -80,6 +93,34 @@ export default function Dashboard({ project, metrics, goals, streak }: Dashboard
     }
   }
 
+  async function createGoal(e: React.FormEvent) {
+    e.preventDefault()
+    setCreatingGoal(true)
+    try {
+      const res = await fetch('/api/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          title: goalForm.title,
+          description: goalForm.description,
+          target: parseInt(goalForm.target) || 0,
+          unit: goalForm.unit,
+          current: parseInt(goalForm.current) || 0,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to create goal')
+      const newGoal = await res.json()
+      setGoals([...goals, newGoal])
+      setShowGoalDialog(false)
+      setGoalForm({ title: '', description: '', target: '', unit: '', current: '0' })
+    } catch (err) {
+      alert('Failed to create goal')
+    } finally {
+      setCreatingGoal(false)
+    }
+  }
+
   // Build chart data from actual metrics - NO FAKE DATA
   const revenueHistory = metrics.MRR ? [
     { name: 'Current', value: metrics.MRR.value }
@@ -97,6 +138,79 @@ export default function Dashboard({ project, metrics, goals, streak }: Dashboard
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Create Goal Dialog */}
+        <Dialog open={showGoalDialog} onOpenChange={setShowGoalDialog}>
+          <DialogContent className="bg-neutral-900 border-neutral-800 text-white">
+            <DialogHeader>
+              <DialogTitle>Create New Goal</DialogTitle>
+              <DialogDescription className="text-neutral-400">
+                Set a target to track for your project
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={createGoal} className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Goal Title</Label>
+                <Input
+                  placeholder="e.g., Reach 1000 Users"
+                  value={goalForm.title}
+                  onChange={(e) => setGoalForm({...goalForm, title: e.target.value})}
+                  className="bg-neutral-800 border-neutral-700"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Target Value</Label>
+                  <Input
+                    type="number"
+                    placeholder="1000"
+                    value={goalForm.target}
+                    onChange={(e) => setGoalForm({...goalForm, target: e.target.value})}
+                    className="bg-neutral-800 border-neutral-700"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Unit</Label>
+                  <Input
+                    placeholder="users, $, etc"
+                    value={goalForm.unit}
+                    onChange={(e) => setGoalForm({...goalForm, unit: e.target.value})}
+                    className="bg-neutral-800 border-neutral-700"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Current Progress (optional)</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={goalForm.current}
+                  onChange={(e) => setGoalForm({...goalForm, current: e.target.value})}
+                  className="bg-neutral-800 border-neutral-700"
+                />
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowGoalDialog(false)}
+                  className="border-neutral-700 text-white hover:text-white hover:bg-neutral-800"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={creatingGoal}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {creatingGoal ? 'Creating...' : 'Create Goal'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
         {/* Error Banner */}
         {error && (
           <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center space-x-3">
@@ -335,36 +449,57 @@ export default function Dashboard({ project, metrics, goals, streak }: Dashboard
         )}
 
         {/* Goals */}
-        {goals.length > 0 && (
-          <div className="mb-8">
-            <Card className="bg-neutral-900 border-neutral-800">
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Target className="h-5 w-5 text-purple-500" />
-                  <CardTitle>Goals</CardTitle>
+        <div className="mb-8">
+          <Card className="bg-neutral-900 border-neutral-800">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Target className="h-5 w-5 text-purple-500" />
+                <CardTitle>Goals</CardTitle>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowGoalDialog(true)}
+                className="border-neutral-700 text-white hover:text-white hover:bg-neutral-800"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Goal
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {goals.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-neutral-500 mb-4">No goals yet. Create your first goal to track progress!</p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowGoalDialog(true)}
+                    className="border-neutral-700 text-white hover:text-white hover:bg-neutral-800"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create First Goal
+                  </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {goals.map((goal) => (
+              ) : (
+                goals.map((goal) => (
                   <div key={goal.id} className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-neutral-300">{goal.title}</span>
                       <span className="text-neutral-400">
-                        {goal.current.toLocaleString()} / {goal.target.toLocaleString()} {goal.unit}
+                        {goal.current?.toLocaleString() || 0} / {goal.target?.toLocaleString() || 0} {goal.unit}
                         {' '}
-                        ({Math.round((goal.current / goal.target) * 100)}%)
+                        ({Math.round(((goal.current || 0) / (goal.target || 1)) * 100)}%)
                       </span>
                     </div>
                     <Progress 
-                      value={(goal.current / goal.target) * 100} 
+                      value={((goal.current || 0) / (goal.target || 1)) * 100} 
                       className="h-2 bg-neutral-800" 
                     />
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Integrations */}
         <div className="text-center">
