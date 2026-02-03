@@ -7,7 +7,13 @@ import {
   Github,
   Twitter,
   CreditCard,
-  Globe
+  Globe,
+  TrendingUp,
+  Users,
+  Code2,
+  Eye,
+  Activity,
+  Flame
 } from 'lucide-react'
 
 export default function LandingPage() {
@@ -60,6 +66,71 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Demo Dashboard */}
+      <section className="py-16 px-4 border-t border-neutral-800">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-center text-sm text-neutral-500 mb-4">Preview of your dashboard</p>
+          <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-2">
+                <div className="flex space-x-1">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <Flame key={i} className="h-4 w-4 text-orange-500 fill-orange-500" />
+                  ))}
+                </div>
+                <span className="text-sm font-medium">Ship Streak: 12 Days 🔥</span>
+              </div>
+              <Badge className="bg-green-500/10 text-green-500">LIVE</Badge>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <DemoMetric
+                icon={<TrendingUp className="h-4 w-4" />}
+                label="Revenue"
+                value="$1,247"
+                sub="MRR"
+                change="+$143 (13%)"
+              />
+              <DemoMetric
+                icon={<Users className="h-4 w-4" />}
+                label="Users"
+                value="312"
+                sub="total"
+                change="+24 (8%)"
+              />
+              <DemoMetric
+                icon={<Code2 className="h-4 w-4" />}
+                label="Code Activity"
+                value="47"
+                sub="commits"
+                change="+12 this week"
+              />
+              <DemoMetric
+                icon={<Twitter className="h-4 w-4" />}
+                label="Social"
+                value="1.2K"
+                sub="followers"
+                change="+89 (8%)"
+              />
+              <DemoMetric
+                icon={<Eye className="h-4 w-4" />}
+                label="Traffic"
+                value="5.4K"
+                sub="views"
+                change="+1.2K (28%)"
+              />
+              <DemoMetric
+                icon={<Activity className="h-4 w-4" />}
+                label="Uptime"
+                value="99.9%"
+                sub=""
+                change="0 incidents"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="py-16 px-4 border-t border-neutral-800">
         <div className="max-w-6xl mx-auto">
@@ -90,31 +161,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Dashboard Preview */}
-      <section className="py-16 px-4 border-t border-neutral-800">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-8">Your metrics, unified</h2>
-          <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-8">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {[
-                { label: 'Revenue', value: '$--', sub: 'Connect Stripe' },
-                { label: 'Users', value: '--', sub: 'No data yet' },
-                { label: 'Commits', value: '--', sub: 'Connect GitHub' },
-                { label: 'Followers', value: '--', sub: 'Connect Twitter' },
-                { label: 'Views', value: '--', sub: 'Connect Plausible' },
-                { label: 'Uptime', value: '--', sub: 'No data yet' },
-              ].map((metric) => (
-                <div key={metric.label} className="bg-neutral-800/50 rounded-lg p-4">
-                  <p className="text-sm text-neutral-400 mb-1">{metric.label}</p>
-                  <p className="text-2xl font-bold">{metric.value}</p>
-                  <p className="text-xs text-neutral-500 mt-1">{metric.sub}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="py-20 px-4 border-t border-neutral-800">
         <div className="max-w-4xl mx-auto text-center">
@@ -135,6 +181,36 @@ export default function LandingPage() {
           <p>© 2026 Mission Control. Built for indie hackers.</p>
         </div>
       </footer>
+    </div>
+  )
+}
+
+function Badge({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${className}`}>
+      {children}
+    </span>
+  )
+}
+
+function DemoMetric({ icon, label, value, sub, change }: { 
+  icon: React.ReactNode
+  label: string
+  value: string
+  sub: string
+  change: string
+}) {
+  return (
+    <div className="bg-neutral-800/50 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-neutral-400">{label}</span>
+        <div className="text-neutral-500">{icon}</div>
+      </div>
+      <div className="flex items-baseline space-x-1">
+        <span className="text-2xl font-bold">{value}</span>
+        {sub && <span className="text-sm text-neutral-400">{sub}</span>}
+      </div>
+      <p className="text-xs text-green-500 mt-1">{change}</p>
     </div>
   )
 }
