@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button'
 import { 
   Zap,
   ArrowRight,
-  BarChart3,
   Github,
   Twitter,
   CreditCard,
@@ -31,12 +30,12 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/api/auth/signin">
-                <Button variant="ghost" className="text-neutral-400 hover:text-white">
+                <Button variant="ghost" className="text-neutral-400 hover:text-white cursor-pointer">
                   Sign In
                 </Button>
               </Link>
               <Link href="/api/auth/signin">
-                <Button className="bg-blue-600 hover:bg-blue-700">
+                <Button className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
                   Get Started
                 </Button>
               </Link>
@@ -57,7 +56,7 @@ export default function LandingPage() {
           </p>
           <div className="flex justify-center space-x-4">
             <Link href="/api/auth/signin">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
                 Start Tracking Free
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
@@ -66,7 +65,37 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Demo Dashboard */}
+      {/* Features - Moved UP */}
+      <section className="py-16 px-4 border-t border-neutral-800">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12">Track everything that matters</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <FeatureCard
+              icon={<CreditCard className="h-6 w-6" />}
+              title="Revenue"
+              description="MRR, churn, and growth from Stripe"
+            />
+            <FeatureCard
+              icon={<Github className="h-6 w-6" />}
+              title="Code Activity"
+              description="Commits, PRs, and shipping streaks"
+            />
+            <FeatureCard
+              icon={<Twitter className="h-6 w-6" />}
+              title="Social"
+              description="Followers and engagement from Twitter/X"
+            />
+            <FeatureCard
+              icon={<Globe className="h-6 w-6" />}
+              title="Traffic"
+              description="Page views from Plausible or Google Analytics"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Demo Dashboard - Moved DOWN */}
       <section className="py-16 px-4 border-t border-neutral-800">
         <div className="max-w-5xl mx-auto">
           <p className="text-center text-sm text-neutral-500 mb-4">Preview of your dashboard</p>
@@ -131,43 +160,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-16 px-4 border-t border-neutral-800">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">Track everything that matters</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <FeatureCard
-              icon={<CreditCard className="h-6 w-6" />}
-              title="Revenue"
-              description="MRR, churn, and growth from Stripe"
-            />
-            <FeatureCard
-              icon={<Github className="h-6 w-6" />}
-              title="Code Activity"
-              description="Commits, PRs, and shipping streaks"
-            />
-            <FeatureCard
-              icon={<Twitter className="h-6 w-6" />}
-              title="Social"
-              description="Followers and engagement from Twitter/X"
-            />
-            <FeatureCard
-              icon={<Globe className="h-6 w-6" />}
-              title="Traffic"
-              description="Page views from Plausible or Google Analytics"
-            />
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="py-20 px-4 border-t border-neutral-800">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to track your growth?</h2>
           <p className="text-neutral-400 mb-8">Free for personal use. No credit card required.</p>
           <Link href="/api/auth/signin">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
               Get Started Free
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
