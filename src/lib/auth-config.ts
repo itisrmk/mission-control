@@ -1,7 +1,6 @@
 import { NextAuthOptions, Session } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { supabaseAdmin } from '@/lib/supabase'
-import crypto from 'crypto'
 
 // Extend session type
 declare module 'next-auth' {
@@ -16,6 +15,7 @@ declare module 'next-auth' {
 }
 
 export const authOptions: NextAuthOptions = {
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -50,7 +50,7 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        // Create new user with UUID
+        // Create new user with UUID (Web Crypto API - works in Edge and Node)
         const id = crypto.randomUUID()
         const now = new Date().toISOString()
         const username = credentials.email.split('@')[0]
