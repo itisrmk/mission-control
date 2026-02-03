@@ -9,25 +9,36 @@ import { Plus, ExternalLink, Settings } from 'lucide-react'
 import NewProjectButton from './new-project-button'
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+  let session
+  try {
+    session = await getServerSession(authOptions)
+  } catch (e) {
+    console.error('Session error:', e)
+  }
   
   if (!session?.user?.id) {
-    redirect('/api/auth/signin')
+    redirect('/auth/signin')
   }
 
-  const { data: projects, error } = await supabaseAdmin
-    .from('Project')
-    .select(`
-      *,
-      metrics:Metric(count),
-      goals:Goal(count)
-    `)
-    .eq('userId', session.user.id)
-    .order('createdAt', { ascending: false })
-
-  if (error) {
-    console.error('Error fetching projects:', error)
-    return <div>Error loading projects</div>
+  let projects: any[] = []
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('Project')
+      .select(`
+        *,
+        metrics:Metric(count),
+        goals:Goal(count)
+      `)
+      .eq('userId', session.user.id)
+      .order('createdAt', { ascending: false })
+    
+    if (error) {
+      console.error('Error fetching projects:', error)
+    } else {
+      projects = data || []
+    }
+  } catch (e) {
+    console.error('Exception fetching projects:', e)
   }
 
   return (

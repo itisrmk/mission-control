@@ -2,14 +2,22 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  // Check for session token in cookies
+  const { pathname } = request.nextUrl
+  
+  // Check for session token in cookies (both secure and non-secure)
   const token = request.cookies.get('next-auth.session-token')?.value || 
                 request.cookies.get('__Secure-next-auth.session-token')?.value
   
-  const isAuthPage = request.nextUrl.pathname.startsWith('/auth/')
+  const isAuthPage = pathname === '/auth/signin' || pathname === '/auth/signup'
+  const isApiAuth = pathname.startsWith('/api/auth/')
+  
+  // Don't intercept API auth routes
+  if (isApiAuth) {
+    return NextResponse.next()
+  }
   
   // If accessing protected route without token, redirect to signin
-  if (!token && !isAuthPage) {
+  if (!token && pathname.startsWith('/dashboard')) {
     const signinUrl = new URL('/auth/signin', request.url)
     signinUrl.searchParams.set('callbackUrl', request.url)
     return NextResponse.redirect(signinUrl)
@@ -24,5 +32,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/auth/:path*'],
+  matcher: ['/dashboard/:path*', '/auth/signin', '/auth/signup'],
 }
