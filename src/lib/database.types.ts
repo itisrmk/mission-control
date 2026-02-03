@@ -184,9 +184,11 @@ export type Database = {
           id: string
           isPublic: boolean
           name: string
+          plausibleApiKey: string | null
           plausibleSiteId: string | null
           slug: string
           stripeAccountId: string | null
+          twitterAccessToken: string | null
           twitterHandle: string | null
           updatedAt: string
           userId: string
@@ -200,9 +202,11 @@ export type Database = {
           id: string
           isPublic?: boolean
           name: string
+          plausibleApiKey?: string | null
           plausibleSiteId?: string | null
           slug: string
           stripeAccountId?: string | null
+          twitterAccessToken?: string | null
           twitterHandle?: string | null
           updatedAt: string
           userId: string
@@ -216,9 +220,11 @@ export type Database = {
           id?: string
           isPublic?: boolean
           name?: string
+          plausibleApiKey?: string | null
           plausibleSiteId?: string | null
           slug?: string
           stripeAccountId?: string | null
+          twitterAccessToken?: string | null
           twitterHandle?: string | null
           updatedAt?: string
           userId?: string

@@ -56,42 +56,36 @@ export async function POST(request: Request) {
     }
     
     if (!integration || integration === 'twitter') {
-      if (project.twitterHandle) {
+      if (project.twitterHandle && project.twitterAccessToken) {
         try {
-          const bearerToken = process.env.TWITTER_BEARER_TOKEN
-          if (bearerToken) {
-            const twitter = await fetchTwitterMetrics(
-              project.id,
-              project.twitterHandle,
-              bearerToken
-            )
-            results.twitter = twitter
-          } else {
-            results.twitter = { error: 'Twitter not configured' }
-          }
+          const twitter = await fetchTwitterMetrics(
+            project.id,
+            project.twitterHandle,
+            project.twitterAccessToken
+          )
+          results.twitter = twitter
         } catch (error) {
           results.twitter = { error: (error as Error).message }
         }
+      } else if (project.twitterHandle && !project.twitterAccessToken) {
+        results.twitter = { error: 'Twitter Bearer Token required. Add it in Settings.' }
       }
     }
     
     if (!integration || integration === 'plausible') {
-      if (project.plausibleSiteId) {
+      if (project.plausibleSiteId && project.plausibleApiKey) {
         try {
-          const apiKey = process.env.PLAUSIBLE_API_KEY
-          if (apiKey) {
-            const plausible = await fetchPlausibleMetrics(
-              project.id,
-              project.plausibleSiteId,
-              apiKey
-            )
-            results.plausible = plausible
-          } else {
-            results.plausible = { error: 'Plausible not configured' }
-          }
+          const plausible = await fetchPlausibleMetrics(
+            project.id,
+            project.plausibleSiteId,
+            project.plausibleApiKey
+          )
+          results.plausible = plausible
         } catch (error) {
           results.plausible = { error: (error as Error).message }
         }
+      } else if (project.plausibleSiteId && !project.plausibleApiKey) {
+        results.plausible = { error: 'Plausible API Key required. Add it in Settings.' }
       }
     }
     

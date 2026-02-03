@@ -26,7 +26,9 @@ interface Project {
   githubRepo: string | null
   githubAccessToken: string | null
   twitterHandle: string | null
+  twitterAccessToken: string | null
   plausibleSiteId: string | null
+  plausibleApiKey: string | null
 }
 
 interface Props {
@@ -57,7 +59,9 @@ export default function ProjectSettings({ params }: Props) {
           githubRepo: data.githubRepo || '',
           githubAccessToken: data.githubAccessToken || '',
           twitterHandle: data.twitterHandle || '',
+          twitterAccessToken: data.twitterAccessToken || '',
           plausibleSiteId: data.plausibleSiteId || '',
+          plausibleApiKey: data.plausibleApiKey || '',
           isPublic: data.isPublic,
         })
       }
@@ -270,10 +274,18 @@ export default function ProjectSettings({ params }: Props) {
                   className="bg-neutral-800 border-neutral-700"
                 />
               </div>
-              <div className="bg-neutral-800 p-3 rounded-lg text-sm text-neutral-400">
-                <p className="font-medium text-yellow-500 mb-1">⚠️ Server Configuration Required</p>
-                <p>Twitter API requires a Bearer token. Your server admin needs to set <code className="bg-neutral-900 px-1 rounded">TWITTER_BEARER_TOKEN</code> in the <code className="bg-neutral-900 px-1 rounded">.env</code> file.</p>
-                <p className="mt-2">Get your token from: <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank" rel="noopener" className="text-blue-400 hover:underline">Twitter Developer Portal</a></p>
+              <div className="space-y-2">
+                <Label>Bearer Token</Label>
+                <Input
+                  type="password"
+                  value={formData.twitterAccessToken || ''}
+                  onChange={(e) => setFormData({ ...formData, twitterAccessToken: e.target.value })}
+                  placeholder="AAAAAAAAAAAAAAAAAAAAAA..."
+                  className="bg-neutral-800 border-neutral-700"
+                />
+                <p className="text-xs text-neutral-500">
+                  Get from <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank" rel="noopener" className="text-blue-400 hover:underline">Twitter Developer Portal</a> → Projects → Keys and Tokens
+                </p>
               </div>
               {project.twitterHandle && (
                 <Button 
@@ -321,8 +333,18 @@ export default function ProjectSettings({ params }: Props) {
                   className="bg-neutral-800 border-neutral-700"
                 />
               </div>
-              <div className="bg-neutral-800 p-3 rounded-lg text-sm text-neutral-400">
-                <p>Plausible API key must be configured in environment variables.</p>
+              <div className="space-y-2">
+                <Label>API Key</Label>
+                <Input
+                  type="password"
+                  value={formData.plausibleApiKey || ''}
+                  onChange={(e) => setFormData({ ...formData, plausibleApiKey: e.target.value })}
+                  placeholder="your-plausible-api-key"
+                  className="bg-neutral-800 border-neutral-700"
+                />
+                <p className="text-xs text-neutral-500">
+                  Get from your Plausible site settings → API
+                </p>
               </div>
               {project.plausibleSiteId && (
                 <Button 
