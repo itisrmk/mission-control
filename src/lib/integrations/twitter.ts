@@ -42,7 +42,7 @@ export async function fetchTwitterMetrics(projectId: string, handle: string, bea
         following_count: metrics.following_count,
         tweet_count: metrics.tweet_count,
       },
-    })
+    } as any)
     
     // Save tweet count as engagement metric
     await supabaseAdmin.from('Metric').insert({
@@ -53,7 +53,7 @@ export async function fetchTwitterMetrics(projectId: string, handle: string, bea
         handle,
         listed_count: metrics.listed_count,
       },
-    })
+    } as any)
     
     return {
       followers: metrics.followers_count,

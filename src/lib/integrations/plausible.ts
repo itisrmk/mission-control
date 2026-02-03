@@ -45,7 +45,7 @@ export async function fetchPlausibleMetrics(
         period: '7d',
         visitors: data.results?.visitors?.value || 0,
       },
-    })
+    } as any)
     
     // Fetch top sources
     const sourcesResponse = await fetch(

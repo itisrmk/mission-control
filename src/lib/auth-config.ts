@@ -1,6 +1,18 @@
-import { NextAuthOptions } from 'next-auth'
+import { NextAuthOptions, Session } from 'next-auth'
 import GitHubProvider from 'next-auth/providers/github'
 import { supabaseAdmin } from '@/lib/supabase'
+
+// Extend session type
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string
+      name?: string | null
+      email?: string | null
+      image?: string | null
+    }
+  }
+}
 
 // Custom Supabase adapter for NextAuth
 const SupabaseAdapter = {
@@ -12,7 +24,7 @@ const SupabaseAdapter = {
         name: user.name,
         image: user.image,
         username: user.email?.split('@')[0],
-      })
+      } as any)
       .select()
       .single()
     
@@ -82,7 +94,7 @@ const SupabaseAdapter = {
       scope: account.scope,
       id_token: account.id_token,
       session_state: account.session_state,
-    })
+    } as any)
   },
 
   async unlinkAccount({ providerAccountId, provider }: { providerAccountId: string; provider: string }) {
@@ -100,7 +112,7 @@ const SupabaseAdapter = {
         userId: session.userId,
         sessionToken: session.sessionToken,
         expires: session.expires,
-      })
+      } as any)
       .select()
       .single()
     

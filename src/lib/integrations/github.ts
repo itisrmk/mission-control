@@ -59,7 +59,7 @@ export async function fetchGitHubMetrics(projectId: string, accessToken: string,
         period: '30d',
         repo: repoFullName,
       },
-    })
+    } as any)
     
     await supabaseAdmin.from('Metric').insert({
       projectId,
@@ -68,7 +68,7 @@ export async function fetchGitHubMetrics(projectId: string, accessToken: string,
       metadata: {
         repo: repoFullName,
       },
-    })
+    } as any)
     
     return { commits: commitCount, prs: prCount }
   } catch (error) {

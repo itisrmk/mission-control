@@ -89,7 +89,7 @@ export async function POST(request: Request) {
         target,
         unit,
         deadline: deadline ? new Date(deadline).toISOString() : null,
-      })
+      } as any)
       .select()
       .single()
     

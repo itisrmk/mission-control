@@ -72,7 +72,7 @@ export async function POST(request: Request) {
         description,
         domain,
         userId: session.user.id,
-      })
+      } as any)
       .select()
       .single()
     

@@ -66,7 +66,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
       invoiceId: invoice.id,
       subscriptionId: invoice.subscription,
     },
-  })
+  } as any)
 }
 
 async function handleSubscriptionChange(subscription: Stripe.Subscription) {
@@ -91,7 +91,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
       subscriptionId: subscription.id,
       status: subscription.status,
     },
-  })
+  } as any)
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
@@ -112,5 +112,5 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       subscriptionId: subscription.id,
       event: 'subscription.deleted',
     },
-  })
+  } as any)
 }

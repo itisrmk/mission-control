@@ -114,7 +114,7 @@ export async function updateShipStreaks() {
       type: 'ACTIVE_USERS', // Using as streak storage for now
       value: streak,
       metadata: { metricType: 'shipStreak' },
-    })
+    } as any)
     
     console.log(`${project.name}: ${streak} day streak`)
   }

@@ -67,7 +67,7 @@ export async function POST(request: Request) {
         type,
         value,
         metadata: metadata || {},
-      })
+      } as any)
       .select()
       .single()
     
