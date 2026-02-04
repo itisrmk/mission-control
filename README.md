@@ -4,8 +4,8 @@
 
 Mission Control is an indie hacker metrics dashboard that aggregates data from Stripe (revenue), GitHub (commits), Twitter/X (followers), and Plausible (traffic) into a unified dashboard with public "open startup" pages.
 
-![Dashboard Preview](<img width="1164" height="448" alt="image" src="https://github.com/user-attachments/assets/918715d4-10e2-467d-96a8-b8ddcaceefac" />
-)
+![Dashboard Preview] <img width="1164" height="448" alt="Screenshot 2026-02-03 191646" src="https://github.com/user-attachments/assets/4fb303b2-eccb-4d61-8fbb-70436aabd7d4" />
+
 
 ## ✨ Features
 
